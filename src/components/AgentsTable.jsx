@@ -1,31 +1,21 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
 
-function AgentsTable() {
+function AgentsTable({ adminId }) {
   const [agents, setAgents] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
 
   useEffect(() => {
-    fetchAgents();
-  }, []);
+    if (adminId) fetchAgents();
+  }, [adminId]);
 
   async function fetchAgents() {
-    const { data, error } = await supabase
+    const { data } = await supabase
       .from('agents')
-      .select('admin_id, agent_id, status');
+      .select('admin_id, agent_id, status')
+      .eq('admin_id', adminId);
 
-    if (error) {
-      setError(error.message);
-    } else {
-      setAgents(data);
-    }
-
-    setLoading(false);
+    setAgents(data || []);
   }
-
-  if (loading) return <p>Loading agents...</p>;
-  if (error) return <p>Error: {error}</p>;
 
   return (
     <table>
@@ -38,15 +28,13 @@ function AgentsTable() {
       </thead>
       <tbody>
         {agents.length === 0 ? (
-          <tr>
-            <td colSpan="3">No agents found</td>
-          </tr>
+          <tr><td colSpan="3">No agents found</td></tr>
         ) : (
-          agents.map((agent, index) => (
-            <tr key={index}>
-              <td>{agent.admin_id}</td>
-              <td>{agent.agent_id}</td>
-              <td>{agent.status}</td>
+          agents.map((a, i) => (
+            <tr key={i}>
+              <td>{a.admin_id}</td>
+              <td>{a.agent_id}</td>
+              <td>{a.status}</td>
             </tr>
           ))
         )}
