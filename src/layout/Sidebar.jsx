@@ -25,6 +25,13 @@ function Sidebar({ activePage, setActivePage }) {
       </div>
 
       <div
+        style={menuItemStyle('agentDetails')}
+        onClick={() => setActivePage('agentDetails')}
+      >
+        Agent Details
+      </div>
+
+      <div
         style={menuItemStyle('hello')}
         onClick={() => setActivePage('hello')}
       >
