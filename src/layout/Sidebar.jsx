@@ -30,6 +30,14 @@ function Sidebar({ activePage, setActivePage }) {
       >
         Agent Details
       </div>
+      
+      <div
+  style={menuItemStyle('analysis')}
+  onClick={() => setActivePage('analysis')}
+>
+  Analysis
+</div>
+
 
       <div
         style={menuItemStyle('hello')}
@@ -42,3 +50,4 @@ function Sidebar({ activePage, setActivePage }) {
 }
 
 export default Sidebar;
+
