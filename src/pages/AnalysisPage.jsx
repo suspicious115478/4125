@@ -1,14 +1,18 @@
 import { useState } from 'react';
 import { supabase } from '../lib/supabase';
 
-// utility: HH:mm:ss → seconds
-function timeToSeconds(timeStr) {
-  if (!timeStr) return 0;
-  const [h, m, s] = timeStr.split(':').map(Number);
-  return h * 3600 + m * 60 + s;
+/* =======================
+   UTILITIES
+======================= */
+
+// minutes (varchar) → seconds
+function minutesToSeconds(value) {
+  if (!value) return 0;
+  const minutes = Number(value);
+  return isNaN(minutes) ? 0 : minutes * 60;
 }
 
-// utility: seconds → HH:mm:ss
+// seconds → HH:mm:ss
 function secondsToTime(seconds) {
   const h = Math.floor(seconds / 3600);
   const m = Math.floor((seconds % 3600) / 60);
@@ -18,13 +22,19 @@ function secondsToTime(seconds) {
     .padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
 }
 
-// utility: login_time + logout_time → seconds
+// login_time + logout_time (time) → seconds
 function workingSeconds(login, logout) {
   if (!login || !logout) return 0;
+
   const [lh, lm, ls] = login.split(':').map(Number);
   const [oh, om, os] = logout.split(':').map(Number);
+
   return (oh * 3600 + om * 60 + os) - (lh * 3600 + lm * 60 + ls);
 }
+
+/* =======================
+   COMPONENT
+======================= */
 
 function AnalysisPage({ adminId }) {
   const [agentId, setAgentId] = useState('');
@@ -62,14 +72,17 @@ function AnalysisPage({ adminId }) {
       .lte('date', toDate);
 
     if (error) {
-      console.error(error);
+      console.error('Analysis error:', error);
       setResult(null);
       setLoading(false);
       return;
     }
 
-    // ---- CALCULATIONS ----
-    const uniqueDays = new Set(data.map(d => d.date)).size;
+    /* =======================
+       CALCULATIONS
+    ======================= */
+
+    const uniqueDays = new Set(data.map(row => row.date)).size;
 
     let totalWorkSeconds = 0;
     let totalCallSeconds = 0;
@@ -90,8 +103,8 @@ function AnalysisPage({ adminId }) {
         row.logout_time
       );
 
-      totalCallSeconds += timeToSeconds(row.call_time);
-      totalBreakSeconds += timeToSeconds(row.break_time);
+      totalCallSeconds += minutesToSeconds(row.call_time);
+      totalBreakSeconds += minutesToSeconds(row.break_time);
 
       totals.normal_order += row.normal_order || 0;
       totals.schedule_order += row.schedule_order || 0;
