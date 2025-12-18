@@ -6,7 +6,6 @@ function AgentHistoryPage({ adminId, agentId, onBack }) {
   const [loading, setLoading] = useState(false);
   const [selectedDate, setSelectedDate] = useState('');
 
-  // fetch when date changes
   useEffect(() => {
     if (adminId && agentId && selectedDate) {
       fetchHistoryByDate();
@@ -18,10 +17,21 @@ function AgentHistoryPage({ adminId, agentId, onBack }) {
 
     const { data, error } = await supabase
       .from('agent_details')
-      .select('login_time, logout_time, call_time')
+      .select(`
+        login_time,
+        logout_time,
+        call_time,
+        break_time,
+        normal_order,
+        schedule_order,
+        assign_orderr,
+        app_intent,
+        employee_cancel,
+        customer_cancel
+      `)
       .eq('admin_id', adminId)
       .eq('agent_id', agentId)
-      .eq('date', selectedDate) // 👈 DATE MATCH HERE
+      .eq('date', selectedDate)
       .order('login_time', { ascending: false });
 
     if (error) {
@@ -67,13 +77,20 @@ function AgentHistoryPage({ adminId, agentId, onBack }) {
               <th>Login Time</th>
               <th>Logout Time</th>
               <th>Call Time</th>
+              <th>Break Time</th>
+              <th>Normal Order</th>
+              <th>Schedule Order</th>
+              <th>Assign Order</th>
+              <th>App Intent</th>
+              <th>Employee Cancel</th>
+              <th>Customer Cancel</th>
             </tr>
           </thead>
 
           <tbody>
             {rows.length === 0 ? (
               <tr>
-                <td colSpan="3">No records found for this date</td>
+                <td colSpan="10">No records found for this date</td>
               </tr>
             ) : (
               rows.map((row, index) => (
@@ -89,6 +106,13 @@ function AgentHistoryPage({ adminId, agentId, onBack }) {
                       : '-'}
                   </td>
                   <td>{row.call_time || '-'}</td>
+                  <td>{row.break_time || '-'}</td>
+                  <td>{row.normal_order ?? 0}</td>
+                  <td>{row.schedule_order ?? 0}</td>
+                  <td>{row.assign_orderr ?? 0}</td>
+                  <td>{row.app_intent ?? 0}</td>
+                  <td>{row.employee_cancel ?? 0}</td>
+                  <td>{row.customer_cancel ?? 0}</td>
                 </tr>
               ))
             )}
