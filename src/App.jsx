@@ -10,7 +10,7 @@ import Sidebar from './layout/Sidebar';
 import AgentsPage from './pages/AgentsPage';
 import HelloPage from './pages/HelloPage';
 import AgentDetailsPage from './pages/AgentDetailsPage';
-
+import AgentHistoryPage from './pages/AgentHistoryPage';
 
 function App() {
   const [session, setSession] = useState(null);
@@ -18,6 +18,8 @@ function App() {
   const [loadingProfile, setLoadingProfile] = useState(true);
   const [showSignup, setShowSignup] = useState(false);
   const [activePage, setActivePage] = useState('agents');
+  const [selectedAgentId, setSelectedAgentId] = useState(null);
+
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
@@ -100,9 +102,21 @@ function App() {
     <AgentsPage adminId={adminId} />
   )}
 
-  {activePage === 'agentDetails' && (
-    <AgentDetailsPage adminId={adminId} />
-  )}
+  {activePage === 'agentDetails' && !selectedAgentId && (
+  <AgentDetailsPage
+    adminId={adminId}
+    onSelectAgent={(agentId) => setSelectedAgentId(agentId)}
+  />
+)}
+
+{activePage === 'agentDetails' && selectedAgentId && (
+  <AgentHistoryPage
+    adminId={adminId}
+    agentId={selectedAgentId}
+    onBack={() => setSelectedAgentId(null)}
+  />
+)}
+
 
   {activePage === 'hello' && <HelloPage />}
 </div>
@@ -113,4 +127,5 @@ function App() {
 }
 
 export default App;
+
 
