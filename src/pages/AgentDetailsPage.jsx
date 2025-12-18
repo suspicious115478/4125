@@ -1,70 +1,63 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
 
-function AgentDetailsPage({ adminId }) {
-  const [rows, setRows] = useState([]);
+function AgentDetailsPage({ adminId, onSelectAgent }) {
+  const [agents, setAgents] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (adminId) {
-      fetchDetails();
-    }
+    if (adminId) fetchAgents();
   }, [adminId]);
 
-  async function fetchDetails() {
+  async function fetchAgents() {
     setLoading(true);
 
     const { data, error } = await supabase
       .from('agent_details')
-      .select('admin_id, login_time, logout_time')
-      .eq('admin_id', adminId)
-      .order('login_time', { ascending: false });
+      .select('agent_id')
+      .eq('admin_id', adminId);
 
     if (error) {
-      console.error('Agent details fetch error:', error);
-      setRows([]);
+      console.error('Fetch agents error:', error);
+      setAgents([]);
     } else {
-      setRows(data || []);
+      // remove duplicates
+      const uniqueAgents = [
+        ...new Set(data.map(row => row.agent_id))
+      ];
+      setAgents(uniqueAgents);
     }
 
     setLoading(false);
   }
 
-  if (loading) {
-    return <p>Loading agent details...</p>;
-  }
+  if (loading) return <p>Loading agents...</p>;
 
   return (
     <div>
-      <h2>Agent Details</h2>
+      <h2>Agents</h2>
 
       <table>
         <thead>
           <tr>
-            <th>Admin ID</th>
-            <th>Login Time</th>
-            <th>Logout Time</th>
+            <th>Agent ID</th>
           </tr>
         </thead>
 
         <tbody>
-          {rows.length === 0 ? (
+          {agents.length === 0 ? (
             <tr>
-              <td colSpan="3">No data found</td>
+              <td>No agents found</td>
             </tr>
           ) : (
-            rows.map((row, index) => (
-              <tr key={index}>
-                <td>{row.admin_id}</td>
-                <td>
-                  {row.login_time
-                    ? new Date(row.login_time).toLocaleString()
-                    : '-'}
-                </td>
-                <td>
-                  {row.logout_time
-                    ? new Date(row.logout_time).toLocaleString()
-                    : '-'}
+            agents.map((agentId, index) => (
+              <tr
+                key={index}
+                style={{ cursor: 'pointer' }}
+                onClick={() => onSelectAgent(agentId)}
+              >
+                <td style={{ color: '#2563eb', fontWeight: 'bold' }}>
+                  {agentId}
                 </td>
               </tr>
             ))
