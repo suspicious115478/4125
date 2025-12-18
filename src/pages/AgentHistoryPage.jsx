@@ -95,16 +95,9 @@ function AgentHistoryPage({ adminId, agentId, onBack }) {
             ) : (
               rows.map((row, index) => (
                 <tr key={index}>
-                  <td>
-                    {row.login_time
-                      ? new Date(row.login_time).toLocaleTimeString()
-                      : '-'}
-                  </td>
-                  <td>
-                    {row.logout_time
-                      ? new Date(row.logout_time).toLocaleTimeString()
-                      : '-'}
-                  </td>
+                 <td>{row.login_time || '-'}</td>
+<td>{row.logout_time || '-'}</td>
+
                   <td>{row.call_time || '-'}</td>
                   <td>{row.break_time || '-'}</td>
                   <td>{row.normal_order ?? 0}</td>
