@@ -9,6 +9,8 @@ import Sidebar from './layout/Sidebar';
 
 import AgentsPage from './pages/AgentsPage';
 import HelloPage from './pages/HelloPage';
+import AgentDetailsPage from './pages/AgentDetailsPage';
+
 
 function App() {
   const [session, setSession] = useState(null);
@@ -93,16 +95,22 @@ function App() {
       <div style={{ flex: 1 }}>
         <TopBar adminId={adminId} onLogout={handleLogout} />
 
-        <div style={{ padding: '20px' }}>
-          {activePage === 'agents' && (
-            <AgentsPage adminId={adminId} />
-          )}
+      <div style={{ padding: '20px' }}>
+  {activePage === 'agents' && (
+    <AgentsPage adminId={adminId} />
+  )}
 
-          {activePage === 'hello' && <HelloPage />}
-        </div>
+  {activePage === 'agentDetails' && (
+    <AgentDetailsPage adminId={adminId} />
+  )}
+
+  {activePage === 'hello' && <HelloPage />}
+</div>
+
       </div>
     </div>
   );
 }
 
 export default App;
+
