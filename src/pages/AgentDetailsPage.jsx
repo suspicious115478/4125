@@ -33,7 +33,7 @@ function AgentDetailsPage({ adminId, onSelectAgent }) {
   );
 
   if (loading) {
-    return <p style={{ color: '#cbd5f5' }}>Loading…</p>;
+    return <p style={{ color: '#6b7280' }}>Loading…</p>;
   }
 
   return (
@@ -44,16 +44,16 @@ function AgentDetailsPage({ adminId, onSelectAgent }) {
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
-          marginBottom: '16px'
+          marginBottom: '20px'
         }}
       >
         <div>
           <h2
             style={{
               margin: 0,
-              fontSize: '20px',
+              fontSize: '22px',
               fontWeight: 600,
-              color: '#e5e7eb'
+              color: '#111827'
             }}
           >
             Agent Details
@@ -61,50 +61,69 @@ function AgentDetailsPage({ adminId, onSelectAgent }) {
           <p
             style={{
               marginTop: '4px',
-              fontSize: '13px',
-              color: '#94a3b8'
+              fontSize: '14px',
+              color: '#6b7280'
             }}
           >
-            Select an agent to view activity
+            Select an agent to view detailed activity
           </p>
         </div>
 
         {/* Search */}
-        <input
-          type="text"
-          placeholder="Search agent ID"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          style={{
-            width: '240px',
-            padding: '8px 12px',
-            fontSize: '13px',
-            background: '#020617',
-            border: '1px solid #1e293b',
-            borderRadius: '6px',
-            color: '#e5e7eb',
-            outline: 'none'
-          }}
-        />
+        <div style={{ position: 'relative' }}>
+          <span
+            style={{
+              position: 'absolute',
+              left: '12px',
+              top: '50%',
+              transform: 'translateY(-50%)',
+              fontSize: '14px',
+              color: '#9ca3af'
+            }}
+          >
+            🔍
+          </span>
+
+          <input
+            type="text"
+            placeholder="Search agent ID"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            style={{
+              width: '240px',
+              padding: '10px 12px 10px 36px',
+              fontSize: '14px',
+              color: '#111827',
+              background: '#ffffff',
+              border: '1px solid #d1d5db',
+              borderRadius: '8px',
+              outline: 'none'
+            }}
+            onFocus={(e) => (e.target.style.borderColor = '#2563eb')}
+            onBlur={(e) => (e.target.style.borderColor = '#d1d5db')}
+          />
+        </div>
       </div>
 
-      {/* List container */}
+      {/* Card */}
       <div
         style={{
-          background: '#020617',
-          border: '1px solid #1e293b',
-          borderRadius: '8px',
+          background: '#ffffff',
+          border: '1px solid #e5e7eb',
+          borderRadius: '12px',
           overflow: 'hidden'
         }}
       >
-        {/* Header row */}
+        {/* Table Header */}
         <div
           style={{
-            padding: '10px 14px',
+            padding: '12px 16px',
             fontSize: '12px',
             fontWeight: 600,
-            color: '#94a3b8',
-            borderBottom: '1px solid #1e293b'
+            textTransform: 'uppercase',
+            letterSpacing: '0.05em',
+            color: '#6b7280',
+            borderBottom: '1px solid #e5e7eb'
           }}
         >
           Agent ID
@@ -114,9 +133,10 @@ function AgentDetailsPage({ adminId, onSelectAgent }) {
         {filteredAgents.length === 0 ? (
           <div
             style={{
-              padding: '14px',
-              fontSize: '13px',
-              color: '#94a3b8'
+              padding: '20px',
+              textAlign: 'center',
+              fontSize: '14px',
+              color: '#6b7280'
             }}
           >
             No agents found
@@ -127,20 +147,20 @@ function AgentDetailsPage({ adminId, onSelectAgent }) {
               key={index}
               onClick={() => onSelectAgent(agentId)}
               style={{
-                padding: '10px 14px',
-                fontSize: '14px',
-                color: '#e5e7eb',
+                padding: '14px 16px',
+                fontSize: '15px',
+                color: '#111827',
                 cursor: 'pointer',
                 borderBottom:
                   index !== filteredAgents.length - 1
-                    ? '1px solid #020617'
+                    ? '1px solid #f3f4f6'
                     : 'none'
               }}
               onMouseEnter={(e) =>
-                (e.currentTarget.style.background = '#020617')
+                (e.currentTarget.style.background = '#f9fafb')
               }
               onMouseLeave={(e) =>
-                (e.currentTarget.style.background = 'transparent')
+                (e.currentTarget.style.background = '#ffffff')
               }
             >
               {agentId}
