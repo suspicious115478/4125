@@ -33,29 +33,24 @@ function AgentsTable({ adminId, search }) {
   );
 
   if (loading) {
-    return <p style={{ color: '#94a3b8' }}>Loading agents...</p>;
+    return <p style={{ color: '#374151' }}>Loading agents...</p>;
   }
 
   return (
     <div
       style={{
-        background: '#020617',
-        border: '1px solid #1e293b',
+        background: '#ffffff',
+        border: '1px solid #e5e7eb',
         borderRadius: '14px',
         overflow: 'hidden'
       }}
     >
-      <table
-        style={{
-          width: '100%',
-          borderCollapse: 'collapse'
-        }}
-      >
+      <table style={{ width: '100%', borderCollapse: 'collapse' }}>
         <thead>
           <tr
             style={{
-              background: '#020617',
-              borderBottom: '1px solid #1e293b'
+              background: '#f9fafb',
+              borderBottom: '1px solid #e5e7eb'
             }}
           >
             <th style={thStyle}>Agent ID</th>
@@ -75,7 +70,7 @@ function AgentsTable({ adminId, search }) {
               <tr
                 key={index}
                 style={{
-                  borderBottom: '1px solid #0f172a'
+                  borderBottom: '1px solid #f1f5f9'
                 }}
               >
                 <td style={tdStyle}>{agent.agent_id}</td>
@@ -86,10 +81,10 @@ function AgentsTable({ adminId, search }) {
                       borderRadius: '999px',
                       fontSize: '12px',
                       fontWeight: 600,
-                      color: agent.status ? '#22c55e' : '#f87171',
+                      color: agent.status ? '#166534' : '#7f1d1d',
                       background: agent.status
-                        ? 'rgba(34,197,94,0.15)'
-                        : 'rgba(248,113,113,0.15)'
+                        ? '#dcfce7'
+                        : '#fee2e2'
                     }}
                   >
                     {agent.status ? 'Active' : 'Inactive'}
@@ -111,22 +106,22 @@ const thStyle = {
   padding: '14px 16px',
   fontSize: '12px',
   fontWeight: 600,
-  color: '#cbd5f5',
-  letterSpacing: '0.06em',
+  color: '#374151', // ✅ BLACK-ish
+  letterSpacing: '0.05em',
   textTransform: 'uppercase'
 };
 
 const tdStyle = {
   padding: '14px 16px',
   fontSize: '14px',
-  color: '#e5e7eb'
+  color: '#000000' // ✅ BLACK TEXT
 };
 
 const emptyStyle = {
   padding: '24px',
   textAlign: 'center',
   fontSize: '14px',
-  color: '#94a3b8'
+  color: '#6b7280'
 };
 
 export default AgentsTable;
