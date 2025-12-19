@@ -19,11 +19,10 @@ function AgentDetailsPage({ adminId, onSelectAgent }) {
       .eq('admin_id', adminId);
 
     if (error) {
-      console.error('Fetch agents error:', error);
+      console.error(error);
       setAgents([]);
     } else {
-      const uniqueAgents = [...new Set(data.map(r => r.agent_id))];
-      setAgents(uniqueAgents);
+      setAgents([...new Set(data.map(r => r.agent_id))]);
     }
 
     setLoading(false);
@@ -34,26 +33,26 @@ function AgentDetailsPage({ adminId, onSelectAgent }) {
   );
 
   if (loading) {
-    return <p style={{ color: '#cbd5f5', padding: 20 }}>Loading agents...</p>;
+    return <p style={{ color: '#cbd5f5' }}>Loading…</p>;
   }
 
   return (
     <div>
-      {/* HEADER */}
+      {/* Header */}
       <div
         style={{
           display: 'flex',
-          alignItems: 'center',
           justifyContent: 'space-between',
-          marginBottom: '22px'
+          alignItems: 'center',
+          marginBottom: '16px'
         }}
       >
         <div>
           <h2
             style={{
               margin: 0,
-              fontSize: '24px',
-              fontWeight: 700,
+              fontSize: '20px',
+              fontWeight: 600,
               color: '#e5e7eb'
             }}
           >
@@ -61,96 +60,62 @@ function AgentDetailsPage({ adminId, onSelectAgent }) {
           </h2>
           <p
             style={{
-              marginTop: '6px',
-              fontSize: '14px',
+              marginTop: '4px',
+              fontSize: '13px',
               color: '#94a3b8'
             }}
           >
-            Select an agent to view detailed activity
+            Select an agent to view activity
           </p>
         </div>
 
-        {/* SEARCH */}
-        <div
+        {/* Search */}
+        <input
+          type="text"
+          placeholder="Search agent ID"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
           style={{
-            position: 'relative',
-            width: '280px'
+            width: '240px',
+            padding: '8px 12px',
+            fontSize: '13px',
+            background: '#020617',
+            border: '1px solid #1e293b',
+            borderRadius: '6px',
+            color: '#e5e7eb',
+            outline: 'none'
           }}
-        >
-          <span
-            style={{
-              position: 'absolute',
-              left: '14px',
-              top: '50%',
-              transform: 'translateY(-50%)',
-              color: '#94a3b8',
-              fontSize: '15px'
-            }}
-          >
-            🔍
-          </span>
-
-          <input
-            type="text"
-            placeholder="Search agent ID"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            style={{
-              width: '100%',
-              padding: '12px 14px 12px 42px',
-              borderRadius: '14px',
-              background: 'rgba(2,6,23,0.9)',
-              border: '1px solid #1e293b',
-              color: '#e5e7eb',
-              fontSize: '14px',
-              outline: 'none',
-              boxShadow: '0 0 0 0 rgba(56,189,248,0)'
-            }}
-            onFocus={(e) =>
-              (e.target.style.boxShadow =
-                '0 0 0 2px rgba(56,189,248,0.35)')
-            }
-            onBlur={(e) =>
-              (e.target.style.boxShadow =
-                '0 0 0 0 rgba(56,189,248,0)')
-            }
-          />
-        </div>
+        />
       </div>
 
-      {/* CARD */}
+      {/* List container */}
       <div
         style={{
-          background:
-            'linear-gradient(180deg, #020617 0%, #020617 60%, #03091f 100%)',
-          borderRadius: '20px',
+          background: '#020617',
           border: '1px solid #1e293b',
-          boxShadow:
-            '0 20px 40px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.04)',
+          borderRadius: '8px',
           overflow: 'hidden'
         }}
       >
-        {/* CARD HEADER */}
+        {/* Header row */}
         <div
           style={{
-            padding: '18px 22px',
-            borderBottom: '1px solid #1e293b',
+            padding: '10px 14px',
             fontSize: '12px',
-            fontWeight: 700,
-            letterSpacing: '0.08em',
-            textTransform: 'uppercase',
-            color: '#94a3b8'
+            fontWeight: 600,
+            color: '#94a3b8',
+            borderBottom: '1px solid #1e293b'
           }}
         >
           Agent ID
         </div>
 
-        {/* LIST */}
+        {/* Rows */}
         {filteredAgents.length === 0 ? (
           <div
             style={{
-              padding: '28px',
-              textAlign: 'center',
+              padding: '14px',
+              fontSize: '13px',
               color: '#94a3b8'
             }}
           >
@@ -162,43 +127,23 @@ function AgentDetailsPage({ adminId, onSelectAgent }) {
               key={index}
               onClick={() => onSelectAgent(agentId)}
               style={{
-                padding: '18px 22px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
+                padding: '10px 14px',
+                fontSize: '14px',
+                color: '#e5e7eb',
                 cursor: 'pointer',
-                transition: 'all 0.2s ease',
                 borderBottom:
                   index !== filteredAgents.length - 1
                     ? '1px solid #020617'
                     : 'none'
               }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.background =
-                  'rgba(56,189,248,0.08)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.background = 'transparent';
-              }}
+              onMouseEnter={(e) =>
+                (e.currentTarget.style.background = '#020617')
+              }
+              onMouseLeave={(e) =>
+                (e.currentTarget.style.background = 'transparent')
+              }
             >
-              <span
-                style={{
-                  fontSize: '15px',
-                  fontWeight: 600,
-                  color: '#e5e7eb'
-                }}
-              >
-                {agentId}
-              </span>
-
-              <span
-                style={{
-                  color: '#38bdf8',
-                  fontSize: '18px'
-                }}
-              >
-                →
-              </span>
+              {agentId}
             </div>
           ))
         )}
