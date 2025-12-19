@@ -45,34 +45,83 @@ function AgentHistoryPage({ adminId, agentId, onBack }) {
 
   return (
     <div style={{ maxWidth: '1200px' }}>
-      {/* Header */}
-      <div style={{ marginBottom: '28px' }}>
+      {/* TOP BAR */}
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          marginBottom: '28px'
+        }}
+      >
+        {/* Back */}
         <button
           onClick={onBack}
           style={{
-            background: 'none',
-            border: 'none',
-            color: '#2563eb',
-            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            padding: '8px 14px',
+            borderRadius: '999px',
+            border: '1px solid #e5e7eb',
+            background: '#ffffff',
             fontSize: '14px',
-            marginBottom: '12px',
-            padding: 0
+            color: '#111827',
+            cursor: 'pointer'
           }}
         >
           ← Back
         </button>
 
+        {/* Date Control */}
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '12px',
+            padding: '10px 14px',
+            borderRadius: '12px',
+            border: '1px solid #e5e7eb',
+            background: '#ffffff'
+          }}
+        >
+          <span
+            style={{
+              fontSize: '14px',
+              color: '#6b7280',
+              fontWeight: 500
+            }}
+          >
+            Date
+          </span>
+
+          <input
+            type="date"
+            value={selectedDate}
+            onChange={(e) => setSelectedDate(e.target.value)}
+            style={{
+              border: 'none',
+              fontSize: '14px',
+              color: '#111827',
+              outline: 'none',
+              background: 'transparent'
+            }}
+          />
+        </div>
+      </div>
+
+      {/* TITLE */}
+      <div style={{ marginBottom: '24px' }}>
         <h2
           style={{
             margin: 0,
-            fontSize: '24px',
+            fontSize: '26px',
             fontWeight: 600,
             color: '#111827'
           }}
         >
           Agent Activity
         </h2>
-
         <p
           style={{
             marginTop: '6px',
@@ -84,112 +133,73 @@ function AgentHistoryPage({ adminId, agentId, onBack }) {
         </p>
       </div>
 
-      {/* Controls */}
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '14px',
-          marginBottom: '32px'
-        }}
-      >
-        <label
-          style={{
-            fontSize: '14px',
-            color: '#374151',
-            fontWeight: 500
-          }}
-        >
-          Select Date
-        </label>
-
-        <div style={{ position: 'relative' }}>
-          <input
-            type="date"
-            value={selectedDate}
-            onChange={(e) => setSelectedDate(e.target.value)}
-            style={{
-              padding: '10px 12px',
-              borderRadius: '8px',
-              border: '1px solid #d1d5db',
-              fontSize: '14px',
-              color: '#111827',
-              background: '#ffffff',
-              outline: 'none',
-              minWidth: '160px'
-            }}
-            onFocus={(e) => (e.target.style.borderColor = '#2563eb')}
-            onBlur={(e) => (e.target.style.borderColor = '#d1d5db')}
-          />
-        </div>
-      </div>
-
       {!selectedDate && (
         <p style={{ color: '#6b7280' }}>
-          Please select a date to view agent metrics.
+          Select a date to view agent metrics.
         </p>
       )}
 
-      {loading && <p style={{ color: '#6b7280' }}>Loading data…</p>}
+      {loading && <p style={{ color: '#6b7280' }}>Loading…</p>}
 
-      {/* GRID */}
+      {/* METRIC GRID */}
       {!loading && selectedDate && rows.length > 0 && (
         <div
           style={{
             display: 'grid',
             gridTemplateColumns: 'repeat(3, 1fr)',
-            gap: '20px'
+            gap: '22px'
           }}
         >
           {rows.map((row, idx) => (
-            <GridBlock key={idx} row={row} />
+            <MetricsGroup key={idx} row={row} />
           ))}
         </div>
       )}
 
       {!loading && selectedDate && rows.length === 0 && (
-        <p style={{ color: '#6b7280' }}>No data found for this date.</p>
+        <p style={{ color: '#6b7280' }}>No data for this date.</p>
       )}
     </div>
   );
 }
 
 /* =====================
-   GRID BLOCK
+   METRICS GROUP
 ===================== */
 
-function GridBlock({ row }) {
+function MetricsGroup({ row }) {
   return (
     <>
-      <MetricBox label="Login Time" value={row.login_time || '-'} accent="#2563eb" />
-      <MetricBox label="Logout Time" value={row.logout_time || '-'} accent="#7c3aed" />
-      <MetricBox label="Call Time" value={row.call_time || '-'} accent="#059669" />
+      <MetricCard label="Login Time" value={row.login_time || '-'} accent="#2563eb" />
+      <MetricCard label="Logout Time" value={row.logout_time || '-'} accent="#7c3aed" />
+      <MetricCard label="Call Time" value={row.call_time || '-'} accent="#059669" />
 
-      <MetricBox label="Break Time" value={row.break_time || '-'} accent="#f59e0b" />
-      <MetricBox label="Normal Orders" value={row.normal_order ?? 0} accent="#0f766e" />
-      <MetricBox label="Scheduled Orders" value={row.schedule_order ?? 0} accent="#9333ea" />
+      <MetricCard label="Break Time" value={row.break_time || '-'} accent="#f59e0b" />
+      <MetricCard label="Normal Orders" value={row.normal_order ?? 0} accent="#0f766e" />
+      <MetricCard label="Scheduled Orders" value={row.schedule_order ?? 0} accent="#9333ea" />
 
-      <MetricBox label="Assigned Orders" value={row.assign_orderr ?? 0} accent="#2563eb" />
-      <MetricBox label="App Intent" value={row.app_intent ?? 0} accent="#db2777" />
-      <MetricBox label="Employee Cancel" value={row.employee_cancel ?? 0} accent="#dc2626" />
+      <MetricCard label="Assigned Orders" value={row.assign_orderr ?? 0} accent="#2563eb" />
+      <MetricCard label="App Intent" value={row.app_intent ?? 0} accent="#db2777" />
+      <MetricCard label="Employee Cancel" value={row.employee_cancel ?? 0} accent="#dc2626" />
 
-      <MetricBox label="Customer Cancel" value={row.customer_cancel ?? 0} accent="#ea580c" />
+      <MetricCard label="Customer Cancel" value={row.customer_cancel ?? 0} accent="#ea580c" />
     </>
   );
 }
 
 /* =====================
-   METRIC BOX
+   METRIC CARD
 ===================== */
 
-function MetricBox({ label, value, accent }) {
+function MetricCard({ label, value, accent }) {
   return (
     <div
       style={{
         background: '#ffffff',
-        borderRadius: '14px',
-        padding: '18px',
-        border: '1px solid #e5e7eb',
+        borderRadius: '16px',
+        padding: '20px',
+        boxShadow:
+          '0 6px 16px rgba(0,0,0,0.08)',
         borderTop: `4px solid ${accent}`
       }}
     >
@@ -197,7 +207,7 @@ function MetricBox({ label, value, accent }) {
         style={{
           fontSize: '13px',
           color: '#6b7280',
-          marginBottom: '8px'
+          marginBottom: '10px'
         }}
       >
         {label}
@@ -205,7 +215,7 @@ function MetricBox({ label, value, accent }) {
 
       <div
         style={{
-          fontSize: '20px',
+          fontSize: '22px',
           fontWeight: 600,
           color: '#111827'
         }}
