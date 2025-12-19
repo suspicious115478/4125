@@ -6,40 +6,28 @@ function AgentsPage({ adminId }) {
 
   return (
     <div>
-      {/* Page Header */}
+      {/* Header */}
       <div
         style={{
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-          marginBottom: '18px'
+          marginBottom: '20px'
         }}
       >
-        <div>
-          <h2
-            style={{
-              margin: 0,
-              fontSize: '20px',
-              fontWeight: 600,
-              color: '#000000' // ✅ BLACK
-            }}
-          >
-            Agents
-          </h2>
-          <p
-            style={{
-              margin: '6px 0 0',
-              fontSize: '13px',
-              color: '#374151'
-            }}
-          >
-            View and manage all agents
-          </p>
-        </div>
+        <h2
+          style={{
+            margin: 0,
+            fontSize: '22px',
+            fontWeight: 600,
+            color: '#000000' // ✅ BLACK
+          }}
+        >
+          Agents
+        </h2>
 
-        {/* Search */}
+        {/* Search bar */}
         <div style={{ position: 'relative' }}>
-          {/* Magnifying glass */}
           <span
             style={{
               position: 'absolute',
@@ -47,7 +35,7 @@ function AgentsPage({ adminId }) {
               top: '50%',
               transform: 'translateY(-50%)',
               fontSize: '14px',
-              color: '#6b7280'
+              color: '#000000'
             }}
           >
             🔍
@@ -59,22 +47,19 @@ function AgentsPage({ adminId }) {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             style={{
-              width: '240px',
-              padding: '10px 14px 10px 34px', // space for icon
-              borderRadius: '10px',
+              width: '260px',
+              padding: '10px 12px 10px 36px',
+              fontSize: '14px',
+              color: '#000000', // ✅ BLACK TEXT
               background: '#ffffff', // ✅ WHITE
-              border: '1px solid #d1d5db',
-              color: '#000000',
-              fontSize: '13px',
+              border: '1px solid #000000',
+              borderRadius: '6px',
               outline: 'none'
             }}
-            onFocus={(e) => (e.target.style.borderColor = '#2563eb')}
-            onBlur={(e) => (e.target.style.borderColor = '#d1d5db')}
           />
         </div>
       </div>
 
-      {/* Table */}
       <AgentsTable adminId={adminId} search={search} />
     </div>
   );
