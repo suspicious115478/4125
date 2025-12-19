@@ -29,30 +29,33 @@ function AgentsTable({ adminId, search }) {
   }
 
   const filteredAgents = agents.filter((agent) =>
-    agent.agent_id
-      .toLowerCase()
-      .includes(search.toLowerCase())
+    agent.agent_id.toLowerCase().includes(search.toLowerCase())
   );
 
   if (loading) {
-    return <p>Loading agents...</p>;
+    return <p style={{ color: '#94a3b8' }}>Loading agents...</p>;
   }
 
   return (
     <div
       style={{
-        background: '#ffffff',
-        border: '1px solid #e5e7eb',
-        borderRadius: '12px',
+        background: '#020617',
+        border: '1px solid #1e293b',
+        borderRadius: '14px',
         overflow: 'hidden'
       }}
     >
-      <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+      <table
+        style={{
+          width: '100%',
+          borderCollapse: 'collapse'
+        }}
+      >
         <thead>
           <tr
             style={{
-              background: '#f9fafb',
-              borderBottom: '1px solid #e5e7eb'
+              background: '#020617',
+              borderBottom: '1px solid #1e293b'
             }}
           >
             <th style={thStyle}>Agent ID</th>
@@ -72,21 +75,21 @@ function AgentsTable({ adminId, search }) {
               <tr
                 key={index}
                 style={{
-                  borderBottom: '1px solid #f1f5f9'
+                  borderBottom: '1px solid #0f172a'
                 }}
               >
                 <td style={tdStyle}>{agent.agent_id}</td>
                 <td style={tdStyle}>
                   <span
                     style={{
-                      padding: '4px 10px',
+                      padding: '4px 12px',
                       borderRadius: '999px',
                       fontSize: '12px',
                       fontWeight: 600,
-                      color: agent.status ? '#065f46' : '#7f1d1d',
+                      color: agent.status ? '#22c55e' : '#f87171',
                       background: agent.status
-                        ? '#d1fae5'
-                        : '#fee2e2'
+                        ? 'rgba(34,197,94,0.15)'
+                        : 'rgba(248,113,113,0.15)'
                     }}
                   >
                     {agent.status ? 'Active' : 'Inactive'}
@@ -105,23 +108,25 @@ function AgentsTable({ adminId, search }) {
 
 const thStyle = {
   textAlign: 'left',
-  padding: '12px 16px',
-  fontSize: '13px',
+  padding: '14px 16px',
+  fontSize: '12px',
   fontWeight: 600,
-  color: '#374151'
+  color: '#cbd5f5',
+  letterSpacing: '0.06em',
+  textTransform: 'uppercase'
 };
 
 const tdStyle = {
-  padding: '12px 16px',
+  padding: '14px 16px',
   fontSize: '14px',
-  color: '#111827'
+  color: '#e5e7eb'
 };
 
 const emptyStyle = {
-  padding: '20px',
+  padding: '24px',
   textAlign: 'center',
   fontSize: '14px',
-  color: '#6b7280'
+  color: '#94a3b8'
 };
 
 export default AgentsTable;
