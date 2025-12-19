@@ -1,53 +1,72 @@
 function Sidebar({ activePage, setActivePage }) {
-  const menuItemStyle = (page) => ({
-    padding: '12px 16px',
-    cursor: 'pointer',
-    backgroundColor: activePage === page ? '#1e293b' : 'transparent',
-    color: 'white'
-  });
+  const menuItem = (page, label) => {
+    const isActive = activePage === page;
+
+    return (
+      <div
+        onClick={() => setActivePage(page)}
+        style={{
+          padding: '12px 18px',
+          margin: '4px 10px',
+          borderRadius: '8px',
+          cursor: 'pointer',
+          fontSize: '14px',
+          fontWeight: isActive ? 600 : 400,
+          backgroundColor: isActive ? '#1f2937' : 'transparent',
+          color: isActive ? '#ffffff' : '#cbd5f5',
+          transition: 'all 0.2s ease'
+        }}
+      >
+        {label}
+      </div>
+    );
+  };
 
   return (
     <div
       style={{
-        width: '220px',
+        width: '240px',
+        height: '100vh',
         background: '#020617',
-        color: 'white',
-        height: '100vh'
+        display: 'flex',
+        flexDirection: 'column',
+        borderRight: '1px solid #1e293b'
       }}
     >
-      <h3 style={{ padding: '16px', margin: 0 }}>Dashboard</h3>
-
+      {/* Logo / Brand */}
       <div
-        style={menuItemStyle('agents')}
-        onClick={() => setActivePage('agents')}
+        style={{
+          padding: '20px',
+          fontSize: '16px',
+          fontWeight: 600,
+          color: '#ffffff',
+          borderBottom: '1px solid #1e293b'
+        }}
       >
-        Agents
+        Admin Dashboard
       </div>
 
-      <div
-        style={menuItemStyle('agentDetails')}
-        onClick={() => setActivePage('agentDetails')}
-      >
-        Agent Details
+      {/* Menu */}
+      <div style={{ marginTop: '12px', flex: 1 }}>
+        {menuItem('agents', 'Agents')}
+        {menuItem('agentDetails', 'Agent Details')}
+        {menuItem('analysis', 'Analysis')}
+        {menuItem('hello', 'Hello')}
       </div>
-      
-      <div
-  style={menuItemStyle('analysis')}
-  onClick={() => setActivePage('analysis')}
->
-  Analysis
-</div>
 
-
+      {/* Footer */}
       <div
-        style={menuItemStyle('hello')}
-        onClick={() => setActivePage('hello')}
+        style={{
+          padding: '14px 18px',
+          fontSize: '12px',
+          color: '#64748b',
+          borderTop: '1px solid #1e293b'
+        }}
       >
-        Hello Page
+        © 2025 Company
       </div>
     </div>
   );
 }
 
 export default Sidebar;
-
