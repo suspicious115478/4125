@@ -21,7 +21,7 @@ function AgentsPage({ adminId }) {
               margin: 0,
               fontSize: '20px',
               fontWeight: 600,
-              color: '#e5e7eb'
+              color: '#000000' // ✅ BLACK
             }}
           >
             Agents
@@ -30,7 +30,7 @@ function AgentsPage({ adminId }) {
             style={{
               margin: '6px 0 0',
               fontSize: '13px',
-              color: '#94a3b8'
+              color: '#374151'
             }}
           >
             View and manage all agents
@@ -38,24 +38,40 @@ function AgentsPage({ adminId }) {
         </div>
 
         {/* Search */}
-        <input
-          type="text"
-          placeholder="Search by Agent ID"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          style={{
-            width: '240px',
-            padding: '10px 14px',
-            borderRadius: '10px',
-            background: '#020617',
-            border: '1px solid #1e293b',
-            color: '#e5e7eb',
-            fontSize: '13px',
-            outline: 'none'
-          }}
-          onFocus={(e) => (e.target.style.borderColor = '#38bdf8')}
-          onBlur={(e) => (e.target.style.borderColor = '#1e293b')}
-        />
+        <div style={{ position: 'relative' }}>
+          {/* Magnifying glass */}
+          <span
+            style={{
+              position: 'absolute',
+              left: '12px',
+              top: '50%',
+              transform: 'translateY(-50%)',
+              fontSize: '14px',
+              color: '#6b7280'
+            }}
+          >
+            🔍
+          </span>
+
+          <input
+            type="text"
+            placeholder="Search by Agent ID"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            style={{
+              width: '240px',
+              padding: '10px 14px 10px 34px', // space for icon
+              borderRadius: '10px',
+              background: '#ffffff', // ✅ WHITE
+              border: '1px solid #d1d5db',
+              color: '#000000',
+              fontSize: '13px',
+              outline: 'none'
+            }}
+            onFocus={(e) => (e.target.style.borderColor = '#2563eb')}
+            onBlur={(e) => (e.target.style.borderColor = '#d1d5db')}
+          />
+        </div>
       </div>
 
       {/* Table */}
