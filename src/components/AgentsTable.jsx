@@ -33,53 +33,65 @@ function AgentsTable({ adminId, search }) {
   );
 
   if (loading) {
-    return <p style={{ color: '#000000' }}>Loading...</p>;
+    return <p style={{ padding: '16px', color: '#000000' }}>Loading...</p>;
   }
 
   return (
-    <div
+    <table
       style={{
-        background: '#ffffff',
-        border: '1px solid #000000',
-        borderRadius: '6px'
+        width: '100%',
+        borderCollapse: 'collapse'
       }}
     >
-      <table
-        style={{
-          width: '100%',
-          borderCollapse: 'collapse'
-        }}
-      >
-        <thead>
-          <tr style={{ borderBottom: '1px solid #000000' }}>
-            <th style={thStyle}>Agent ID</th>
-            <th style={thStyle}>Status</th>
-          </tr>
-        </thead>
+      <thead>
+        <tr style={{ borderBottom: '1px solid #e5e7eb' }}>
+          <th style={thStyle}>Agent ID</th>
+          <th style={thStyle}>Status</th>
+        </tr>
+      </thead>
 
-        <tbody>
-          {filteredAgents.length === 0 ? (
-            <tr>
-              <td colSpan="2" style={emptyStyle}>
-                No agents found
+      <tbody>
+        {filteredAgents.length === 0 ? (
+          <tr>
+            <td colSpan="2" style={emptyStyle}>
+              No agents found
+            </td>
+          </tr>
+        ) : (
+          filteredAgents.map((agent, index) => (
+            <tr
+              key={index}
+              style={{
+                borderBottom: '1px solid #f1f5f9',
+                transition: 'background 0.2s ease'
+              }}
+              onMouseEnter={(e) =>
+                (e.currentTarget.style.background = '#f9fafb')
+              }
+              onMouseLeave={(e) =>
+                (e.currentTarget.style.background = '#ffffff')
+              }
+            >
+              <td style={tdStyle}>{agent.agent_id}</td>
+              <td style={tdStyle}>
+                <span
+                  style={{
+                    padding: '6px 14px',
+                    borderRadius: '999px',
+                    fontSize: '12px',
+                    fontWeight: 600,
+                    background: agent.status ? '#dcfce7' : '#fee2e2',
+                    color: '#000000'
+                  }}
+                >
+                  {agent.status ? 'Active' : 'Inactive'}
+                </span>
               </td>
             </tr>
-          ) : (
-            filteredAgents.map((agent, index) => (
-              <tr
-                key={index}
-                style={{ borderBottom: '1px solid #000000' }}
-              >
-                <td style={tdStyle}>{agent.agent_id}</td>
-                <td style={tdStyle}>
-                  {agent.status ? 'Active' : 'Inactive'}
-                </td>
-              </tr>
-            ))
-          )}
-        </tbody>
-      </table>
-    </div>
+          ))
+        )}
+      </tbody>
+    </table>
   );
 }
 
@@ -87,22 +99,25 @@ function AgentsTable({ adminId, search }) {
 
 const thStyle = {
   textAlign: 'left',
-  padding: '12px',
-  fontSize: '13px',
-  fontWeight: 600,
-  color: '#000000' // ✅ BLACK
+  padding: '14px 16px',
+  fontSize: '12px',
+  fontWeight: 700,
+  color: '#000000',
+  textTransform: 'uppercase'
 };
 
 const tdStyle = {
-  padding: '12px',
+  padding: '16px',
   fontSize: '14px',
-  color: '#000000' // ✅ BLACK
+  color: '#000000'
 };
 
 const emptyStyle = {
-  padding: '20px',
+  padding: '24px',
   textAlign: 'center',
-  color: '#000000'
+  fontSize: '14px',
+  color: '#000000',
+  opacity: 0.6
 };
 
 export default AgentsTable;
