@@ -14,13 +14,14 @@ function TopBar({ adminId, onLogout }) {
     <div
       style={{
         height: '68px',
-        background: '#020617',
+        background:
+          'linear-gradient(180deg, #020617 0%, #020617 70%, #03091f 100%)',
         borderBottom: '1px solid #1e293b',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
         padding: '0 28px',
-        boxShadow: 'inset 0 -1px 0 rgba(255,255,255,0.02)'
+        boxShadow: '0 1px 0 rgba(255,255,255,0.04)'
       }}
     >
       {/* LEFT: Context */}
@@ -29,7 +30,7 @@ function TopBar({ adminId, onLogout }) {
           style={{
             fontSize: '11px',
             color: '#94a3b8',
-            letterSpacing: '0.08em',
+            letterSpacing: '0.1em',
             textTransform: 'uppercase'
           }}
         >
@@ -52,29 +53,34 @@ function TopBar({ adminId, onLogout }) {
           fontSize: '14px',
           color: '#cbd5f5',
           fontWeight: 500,
-          fontVariantNumeric: 'tabular-nums'
+          fontVariantNumeric: 'tabular-nums',
+          padding: '6px 14px',
+          borderRadius: '999px',
+          background: 'rgba(255,255,255,0.04)',
+          border: '1px solid rgba(255,255,255,0.06)'
         }}
       >
         {time.toLocaleTimeString()}
       </div>
 
       {/* RIGHT: Actions */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-        {/* Admin Badge */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+        {/* Admin badge */}
         <div
           style={{
             padding: '6px 14px',
             borderRadius: '999px',
             background: 'rgba(56,189,248,0.12)',
             color: '#38bdf8',
-            fontSize: '13px',
-            fontWeight: 600
+            fontSize: '12px',
+            fontWeight: 600,
+            letterSpacing: '0.05em'
           }}
         >
           ADMIN
         </div>
 
-        {/* Logout Button */}
+        {/* Logout button */}
         <button
           onClick={onLogout}
           style={{
