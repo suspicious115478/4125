@@ -14,23 +14,23 @@ function TopBar({ adminId, onLogout }) {
     <div
       style={{
         height: '68px',
-        background: '#ffffff',
-        borderBottom: '1px solid #e5e7eb',
-        boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
+        background: '#020617',
+        borderBottom: '1px solid #1e293b',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
-        padding: '0 28px'
+        padding: '0 28px',
+        boxShadow: 'inset 0 -1px 0 rgba(255,255,255,0.02)'
       }}
     >
-      {/* LEFT: Page context */}
+      {/* LEFT: Context */}
       <div style={{ display: 'flex', flexDirection: 'column' }}>
         <span
           style={{
-            fontSize: '12px',
-            color: '#6b7280',
-            textTransform: 'uppercase',
-            letterSpacing: '0.05em'
+            fontSize: '11px',
+            color: '#94a3b8',
+            letterSpacing: '0.08em',
+            textTransform: 'uppercase'
           }}
         >
           Dashboard
@@ -39,60 +39,63 @@ function TopBar({ adminId, onLogout }) {
           style={{
             fontSize: '15px',
             fontWeight: 600,
-            color: '#111827'
+            color: '#e5e7eb'
           }}
         >
           Admin ID: {adminId}
         </span>
       </div>
 
-      {/* CENTER: Clock */}
+      {/* CENTER: Time */}
       <div
         style={{
           fontSize: '14px',
-          color: '#4b5563',
-          fontWeight: 500
+          color: '#cbd5f5',
+          fontWeight: 500,
+          fontVariantNumeric: 'tabular-nums'
         }}
       >
         {time.toLocaleTimeString()}
       </div>
 
-      {/* RIGHT: User + Logout */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-        {/* User Chip */}
+      {/* RIGHT: Actions */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+        {/* Admin Badge */}
         <div
           style={{
-            padding: '6px 12px',
+            padding: '6px 14px',
             borderRadius: '999px',
-            background: '#f3f4f6',
+            background: 'rgba(56,189,248,0.12)',
+            color: '#38bdf8',
             fontSize: '13px',
-            fontWeight: 500,
-            color: '#374151'
+            fontWeight: 600
           }}
         >
-          Admin
+          ADMIN
         </div>
 
-        {/* Logout */}
+        {/* Logout Button */}
         <button
           onClick={onLogout}
           style={{
-            background: '#111827',
-            color: '#ffffff',
-            border: 'none',
-            padding: '8px 16px',
-            borderRadius: '8px',
+            background: '#1e293b',
+            border: '1px solid #334155',
+            color: '#e5e7eb',
+            padding: '8px 18px',
+            borderRadius: '10px',
             fontSize: '13px',
             fontWeight: 500,
             cursor: 'pointer',
-            transition: 'background 0.2s ease'
+            transition: 'all 0.2s ease'
           }}
-          onMouseOver={(e) =>
-            (e.target.style.background = '#1f2937')
-          }
-          onMouseOut={(e) =>
-            (e.target.style.background = '#111827')
-          }
+          onMouseOver={(e) => {
+            e.target.style.background = '#334155';
+            e.target.style.borderColor = '#38bdf8';
+          }}
+          onMouseOut={(e) => {
+            e.target.style.background = '#1e293b';
+            e.target.style.borderColor = '#334155';
+          }}
         >
           Logout
         </button>
