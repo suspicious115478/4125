@@ -1,5 +1,7 @@
 import { useState } from 'react';
 import { supabase } from '../lib/supabase';
+import jsPDF from 'jspdf';
+import 'jspdf-autotable';
 
 /* =======================
    UTILITIES
@@ -79,6 +81,46 @@ function AnalysisPage({ adminId }) {
     setLoading(false);
   }
 
+  // PDF GENERATION FUNCTION
+  const downloadPDF = () => {
+    const doc = new jsPDF();
+
+    // Add Title & Metadata
+    doc.setFontSize(18);
+    doc.text(`Agent Performance Report: ${agentId}`, 14, 22);
+    doc.setFontSize(11);
+    doc.setTextColor(100);
+    doc.text(`Period: ${fromDate} to ${toDate}`, 14, 30);
+    doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 14, 36);
+
+    // Define Table Rows
+    const tableRows = [
+      ["Metric", "Value"],
+      ["Total Working Days", result.workingDays],
+      ["Total Working Hours", result.workingHours],
+      ["Total Call Time", result.callTime],
+      ["Total Break Time", result.breakTime],
+      ["Normal Orders", result.normal_order],
+      ["Scheduled Orders", result.schedule_order],
+      ["Assigned Orders", result.assign_orderr],
+      ["App Intent", result.app_intent],
+      ["Employee Cancels", result.employee_cancel],
+      ["Customer Cancels", result.customer_cancel],
+    ];
+
+    // AutoTable Plugin usage
+    doc.autoTable({
+      head: [tableRows[0]],
+      body: tableRows.slice(1),
+      startY: 45,
+      theme: 'grid',
+      headStyles: { fillColor: [30, 41, 59] }, // Slate color to match UI
+      styles: { fontSize: 10, cellPadding: 5 }
+    });
+
+    doc.save(`Analysis_${agentId}_${fromDate}.pdf`);
+  };
+
   const styles = {
     container: {
       padding: '30px',
@@ -134,6 +176,18 @@ function AnalysisPage({ adminId }) {
       cursor: 'pointer',
       transition: 'background 0.2s',
     },
+    downloadBtn: {
+      padding: '10px 20px',
+      backgroundColor: '#059669', // Emerald color
+      color: 'white',
+      border: 'none',
+      borderRadius: '8px',
+      fontWeight: '600',
+      cursor: 'pointer',
+      display: 'flex',
+      alignItems: 'center',
+      gap: '8px'
+    },
     grid: {
       display: 'grid',
       gridTemplateColumns: 'repeat(3, 1fr)',
@@ -170,14 +224,14 @@ function AnalysisPage({ adminId }) {
             <span style={styles.label}>To</span>
             <input type="date" style={styles.input} value={toDate} onChange={e => setToDate(e.target.value)} />
           </div>
-          <button 
-            style={styles.analyzeBtn} 
-            onClick={runAnalysis}
-            onMouseOver={(e) => e.target.style.backgroundColor = '#334155'}
-            onMouseOut={(e) => e.target.style.backgroundColor = '#1e293b'}
-          >
-            Run Analysis
-          </button>
+          <button style={styles.analyzeBtn} onClick={runAnalysis}>Run Analysis</button>
+          
+          {/* PDF DOWNLOAD BUTTON */}
+          {result && (
+            <button style={styles.downloadBtn} onClick={downloadPDF}>
+              <span>📥</span> Download PDF
+            </button>
+          )}
         </div>
       </div>
 
@@ -209,7 +263,6 @@ function AnalysisPage({ adminId }) {
   );
 }
 
-// Reusable DataCard (Same as History Page for consistency)
 function DataCard({ label, value, color, textColor }) {
   return (
     <div style={{
