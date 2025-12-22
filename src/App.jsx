@@ -12,6 +12,8 @@ import HelloPage from './pages/HelloPage';
 import AgentDetailsPage from './pages/AgentDetailsPage';
 import AgentHistoryPage from './pages/AgentHistoryPage';
 import AnalysisPage from './pages/AnalysisPage';
+import AgentReportPage from './pages/AgentReportPage';
+
 
 
 function App() {
@@ -122,6 +124,10 @@ function App() {
         {activePage === 'analysis' && (
   <AnalysisPage adminId={adminId} />
 )}
+        {activePage === 'agentReport' && (
+  <AgentReportPage adminId={adminId} />
+)}
+
 
   {activePage === 'hello' && <HelloPage />}
 </div>
@@ -132,6 +138,7 @@ function App() {
 }
 
 export default App;
+
 
 
 
