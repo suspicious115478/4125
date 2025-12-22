@@ -51,6 +51,7 @@ function Sidebar({ activePage, setActivePage }) {
         {menuItem('agents', 'Agents')}
         {menuItem('agentDetails', 'Agent Details')}
         {menuItem('analysis', 'Analysis')}
+        {menuItem('agentReport', 'Agent Report')}
         {menuItem('hello', 'Hello')}
       </div>
 
@@ -70,3 +71,4 @@ function Sidebar({ activePage, setActivePage }) {
 }
 
 export default Sidebar;
+
