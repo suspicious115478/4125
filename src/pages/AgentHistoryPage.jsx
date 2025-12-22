@@ -35,112 +35,101 @@ function AgentHistoryPage({ adminId, agentId, onBack }) {
     setLoading(false);
   }
 
-  // Styles object for a clean, professional look
   const styles = {
     container: {
-      padding: '24px',
-      fontFamily: '"Inter", sans-serif',
-      backgroundColor: '#f8fafc',
+      padding: '30px',
+      fontFamily: '"Segoe UI", Roboto, Helvetica, Arial, sans-serif',
+      backgroundColor: '#f1f5f9',
       minHeight: '100vh',
     },
-    header: {
+    topBar: {
+      display: 'flex',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: '40px',
+      backgroundColor: '#ffffff',
+      padding: '20px 25px',
+      borderRadius: '16px',
+      boxShadow: '0 4px 12px rgba(0,0,0,0.03)',
+    },
+    leftSection: {
       display: 'flex',
       alignItems: 'center',
-      justifyContent: 'space-between',
-      marginBottom: '32px',
+      gap: '24px',
     },
     backBtn: {
-      padding: '10px 18px',
-      backgroundColor: '#ffffff',
+      padding: '10px 16px',
+      backgroundColor: '#f8fafc',
       border: '1px solid #e2e8f0',
-      borderRadius: '8px',
+      borderRadius: '10px',
       cursor: 'pointer',
       fontSize: '14px',
       fontWeight: '600',
       color: '#475569',
-      display: 'flex',
-      alignItems: 'center',
-      gap: '8px',
       transition: 'all 0.2s',
-      boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
+    },
+    agentInfo: {
+      borderLeft: '2px solid #e2e8f0',
+      paddingLeft: '24px',
     },
     datePickerContainer: {
       display: 'flex',
-      alignItems: 'center',
-      gap: '12px',
-      background: '#fff',
-      padding: '8px 16px',
-      borderRadius: '12px',
-      border: '1px solid #e2e8f0',
+      flexDirection: 'column',
+      alignItems: 'flex-end',
+      gap: '4px',
     },
     input: {
-      border: 'none',
-      outline: 'none',
-      fontSize: '15px',
+      padding: '10px 14px',
+      borderRadius: '8px',
+      border: '1px solid #cbd5e1',
+      fontSize: '14px',
       color: '#1e293b',
+      outline: 'none',
+      backgroundColor: '#f8fafc',
       cursor: 'pointer',
     },
     grid: {
       display: 'grid',
-      gridTemplateColumns: 'repeat(3, 1fr)', // 3 boxes per row
-      gap: '20px',
-      marginTop: '20px',
-    },
-    card: (bgColor) => ({
-      backgroundColor: bgColor || '#ffffff',
-      padding: '20px',
-      borderRadius: '16px',
-      border: '1px solid rgba(0,0,0,0.05)',
-      display: 'flex',
-      flexDirection: 'column',
-      justifyContent: 'center',
-      boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)',
-      transition: 'transform 0.2s',
-    }),
-    label: {
-      fontSize: '12px',
-      textTransform: 'uppercase',
-      letterSpacing: '0.05em',
-      color: '#64748b',
-      fontWeight: '700',
-      marginBottom: '8px',
-    },
-    value: {
-      fontSize: '24px',
-      fontWeight: 'bold',
-      color: '#1e293b',
+      gridTemplateColumns: 'repeat(3, 1fr)',
+      gap: '24px',
     },
     emptyState: {
       textAlign: 'center',
-      padding: '60px',
-      color: '#94a3b8',
-      fontSize: '18px',
+      padding: '100px 0',
+      color: '#64748b',
+      fontSize: '16px',
+      backgroundColor: '#fff',
+      borderRadius: '20px',
+      border: '2px dashed #e2e8f0'
     }
   };
 
   return (
     <div style={styles.container}>
-      {/* HEADER SECTION */}
-      <div style={styles.header}>
-        <button 
-          style={styles.backBtn} 
-          onClick={onBack}
-          onMouseOver={(e) => e.target.style.backgroundColor = '#f1f5f9'}
-          onMouseOut={(e) => e.target.style.backgroundColor = '#ffffff'}
-        >
-          ← Back to List
-        </button>
-        
-        <div style={{ textAlign: 'right' }}>
-          <h2 style={{ margin: 0, color: '#1e293b', fontSize: '24px' }}>Agent: {agentId}</h2>
-          <p style={{ margin: 0, color: '#64748b', fontSize: '14px' }}>Performance Analytics</p>
+      {/* TOP NAVIGATION BAR */}
+      <div style={styles.topBar}>
+        <div style={styles.leftSection}>
+          <button 
+            style={styles.backBtn} 
+            onClick={onBack}
+            onMouseOver={(e) => e.target.style.backgroundColor = '#e2e8f0'}
+            onMouseOut={(e) => e.target.style.backgroundColor = '#f8fafc'}
+          >
+            ← Back
+          </button>
+          
+          <div style={styles.agentInfo}>
+            <h2 style={{ margin: 0, color: '#0f172a', fontSize: '22px', fontWeight: '800' }}>
+              Agent: {agentId}
+            </h2>
+            <p style={{ margin: 0, color: '#64748b', fontSize: '14px', fontWeight: '500' }}>
+              Performance Analytics
+            </p>
+          </div>
         </div>
-      </div>
 
-      {/* FILTERS */}
-      <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '40px' }}>
         <div style={styles.datePickerContainer}>
-          <span style={{ fontSize: '14px', fontWeight: '600', color: '#64748b' }}>Select Date:</span>
+          <label style={{ fontSize: '12px', fontWeight: '700', color: '#94a3b8', textTransform: 'uppercase' }}>Filter Date</label>
           <input
             type="date"
             style={styles.input}
@@ -150,58 +139,66 @@ function AgentHistoryPage({ adminId, agentId, onBack }) {
         </div>
       </div>
 
-      {loading && <div style={styles.emptyState}>Updating dashboard metrics...</div>}
-
-      {!loading && selectedDate && rows.length > 0 && (
+      {/* CONTENT AREA */}
+      {loading ? (
+        <div style={styles.emptyState}>Fetching record details...</div>
+      ) : selectedDate && rows.length > 0 ? (
         <div style={styles.grid}>
-          {/* Creating individual cards for the first row of data found */}
-          <DataCard label="Login Time" value={rows[0].login_time} color="#eff6ff" />
-          <DataCard label="Logout Time" value={rows[0].logout_time} color="#f5f3ff" />
-          <DataCard label="Call Duration" value={rows[0].call_time} color="#ecfdf5" />
+          <DataCard label="Login Time" value={rows[0].login_time} color="#dbeafe" textColor="#1e40af" />
+          <DataCard label="Logout Time" value={rows[0].logout_time} color="#ede9fe" textColor="#5b21b6" />
+          <DataCard label="Call Duration" value={rows[0].call_time} color="#d1fae5" textColor="#065f46" />
           
-          <DataCard label="Break Time" value={rows[0].break_time} color="#fff7ed" />
-          <DataCard label="Normal Orders" value={rows[0].normal_order} color="#f0fdf4" />
-          <DataCard label="Scheduled Orders" value={rows[0].schedule_order} color="#fdf2f8" />
+          <DataCard label="Break Time" value={rows[0].break_time} color="#ffedd5" textColor="#9a3412" />
+          <DataCard label="Normal Orders" value={rows[0].normal_order} color="#dcfce7" textColor="#166534" />
+          <DataCard label="Scheduled Orders" value={rows[0].fce7f2} color="#fae8ff" textColor="#86198f" />
           
-          <DataCard label="Assigned Orders" value={rows[0].assign_orderr} color="#eef2ff" />
-          <DataCard label="App Intent" value={rows[0].app_intent} color="#fff1f2" />
-          <DataCard label="Employee Cancels" value={rows[0].employee_cancel} color="#f8fafc" />
+          <DataCard label="Assigned Orders" value={rows[0].assign_orderr} color="#e0e7ff" textColor="#3730a3" />
+          <DataCard label="App Intent" value={rows[0].app_intent} color="#ffe4e6" textColor="#9f1239" />
+          <DataCard label="Employee Cancels" value={rows[0].employee_cancel} color="#f1f5f9" textColor="#334155" />
           
-          <DataCard label="Customer Cancels" value={rows[0].customer_cancel} color="#fef2f2" />
+          <DataCard label="Customer Cancels" value={rows[0].customer_cancel} color="#fee2e2" textColor="#991b1b" />
         </div>
-      )}
-
-      {!loading && (!selectedDate || rows.length === 0) && (
+      ) : (
         <div style={styles.emptyState}>
-          {selectedDate ? "No data found for this specific date." : "Please select a date to view the performance dashboard."}
+          {selectedDate 
+            ? `No records found for ${selectedDate}` 
+            : "Select a date in the top right to view performance boxes."}
         </div>
       )}
     </div>
   );
 }
 
-// Sub-component for the Info Boxes
-function DataCard({ label, value, color }) {
-  const [hover, setHover] = useState(false);
-  
+// Card Component with slightly darker, rich colors
+function DataCard({ label, value, color, textColor }) {
   return (
     <div 
       style={{
         backgroundColor: color,
-        padding: '24px',
-        borderRadius: '16px',
-        border: '1px solid rgba(0,0,0,0.03)',
-        boxShadow: hover ? '0 10px 15px -3px rgba(0,0,0,0.1)' : '0 4px 6px -1px rgba(0,0,0,0.05)',
-        transform: hover ? 'translateY(-4px)' : 'translateY(0)',
-        transition: 'all 0.3s ease',
+        padding: '30px 25px',
+        borderRadius: '20px',
+        display: 'flex',
+        flexDirection: 'column',
+        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)',
+        border: '1px solid rgba(0,0,0,0.05)'
       }}
-      onMouseEnter={() => setHover(true)}
-      onMouseLeave={() => setHover(false)}
     >
-      <div style={{ fontSize: '12px', fontWeight: '800', color: '#64748b', textTransform: 'uppercase', marginBottom: '12px' }}>
+      <div style={{ 
+        fontSize: '13px', 
+        fontWeight: '700', 
+        color: textColor, 
+        textTransform: 'uppercase', 
+        letterSpacing: '0.5px',
+        marginBottom: '10px',
+        opacity: 0.8
+      }}>
         {label}
       </div>
-      <div style={{ fontSize: '28px', fontWeight: '700', color: '#1e293b' }}>
+      <div style={{ 
+        fontSize: '32px', 
+        fontWeight: '800', 
+        color: textColor 
+      }}>
         {value || (value === 0 ? 0 : '—')}
       </div>
     </div>
