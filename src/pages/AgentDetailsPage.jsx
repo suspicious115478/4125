@@ -33,87 +33,97 @@ function AgentDetailsPage({ adminId, onSelectAgent }) {
   const styles = {
     grid: {
       display: 'grid',
-      gridTemplateColumns: 'repeat(3, 1fr)', // 3 cards per row
-      gap: '20px',
+      gridTemplateColumns: 'repeat(3, 1fr)',
+      gap: '24px',
       marginTop: '10px'
     },
     agentCard: {
       backgroundColor: '#ffffff',
-      padding: '24px',
-      borderRadius: '16px',
+      padding: '20px 24px',
+      borderRadius: '20px',
       border: '1px solid #e2e8f0',
       display: 'flex',
       alignItems: 'center',
-      gap: '16px',
+      gap: '18px',
       cursor: 'pointer',
-      transition: 'all 0.2s ease',
-      boxShadow: '0 2px 4px rgba(0,0,0,0.02)',
+      transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+      boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)',
     },
     avatar: {
-      width: '48px',
-      height: '48px',
-      backgroundColor: '#eff6ff', // Light blue
-      color: '#2563eb', // Deeper blue
-      borderRadius: '12px',
+      width: '52px',
+      height: '52px',
+      backgroundColor: '#e0e7ff', // Soft indigo background
+      borderRadius: '14px',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
-      fontSize: '20px',
-      fontWeight: 'bold',
-      border: '1px solid #dbeafe'
+      border: '1px solid #c7d2fe'
     },
     agentName: {
-      fontSize: '16px',
+      fontSize: '17px',
       fontWeight: '700',
       color: '#1e293b',
       margin: 0
     },
     viewLabel: {
-      fontSize: '12px',
+      fontSize: '13px',
       color: '#64748b',
-      marginTop: '2px'
+      marginTop: '3px',
+      fontWeight: '500'
     }
   };
 
+  // Modern User Icon SVG
+  const UserIcon = () => (
+    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#4338ca" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+      <circle cx="12" cy="7" r="4"></circle>
+    </svg>
+  );
+
   if (loading) {
-    return <p style={{ padding: '30px', color: '#64748b' }}>Loading agent directory...</p>;
+    return <div style={{ padding: '40px', color: '#64748b', textAlign: 'center', fontWeight: '500' }}>Loading agent directory...</div>;
   }
 
   return (
-    <div style={{ padding: '20px' }}>
-      {/* Header & Search (Kept as requested) */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px' }}>
+    <div style={{ padding: '30px' }}>
+      {/* Header & Search */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '40px' }}>
         <div>
-          <h2 style={{ margin: 0, fontSize: '24px', fontWeight: 800, color: '#0f172a' }}>Agent Details</h2>
-          <p style={{ marginTop: '4px', fontSize: '14px', color: '#64748b' }}>Select an agent to view detailed activity</p>
+          <h2 style={{ margin: 0, fontSize: '26px', fontWeight: 800, color: '#0f172a' }}>Agent Details</h2>
+          <p style={{ marginTop: '6px', fontSize: '15px', color: '#64748b' }}>Select an agent to view detailed activity</p>
         </div>
 
         <div style={{ position: 'relative' }}>
-          <span style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', fontSize: '14px', color: '#9ca3af' }}>🔍</span>
+          <span style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', fontSize: '16px' }}>🔍</span>
           <input
             type="text"
-            placeholder="Search agent ID"
+            placeholder="Search agent ID..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             style={{
-              width: '260px',
-              padding: '12px 12px 12px 40px',
+              width: '280px',
+              padding: '14px 14px 14px 44px',
               fontSize: '14px',
-              color: '#111827',
+              color: '#1e293b',
               background: '#ffffff',
               border: '1px solid #cbd5e1',
-              borderRadius: '10px',
+              borderRadius: '12px',
               outline: 'none',
+              transition: 'border-color 0.2s',
               boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
             }}
+            onFocus={(e) => e.target.style.borderColor = '#4338ca'}
+            onBlur={(e) => e.target.style.borderColor = '#cbd5e1'}
           />
         </div>
       </div>
 
-      {/* RE-DESIGNED GRID LAYOUT */}
+      {/* AGENT GRID */}
       {filteredAgents.length === 0 ? (
-        <div style={{ textAlign: 'center', padding: '60px', background: '#fff', borderRadius: '16px', border: '1px dashed #cbd5e1', color: '#94a3b8' }}>
-          No agents found matching your search.
+        <div style={{ textAlign: 'center', padding: '80px', background: '#fff', borderRadius: '24px', border: '2px dashed #e2e8f0', color: '#94a3b8' }}>
+          <div style={{ fontSize: '40px', marginBottom: '10px' }}>👤</div>
+          <p style={{ fontSize: '16px', fontWeight: '500' }}>No agents found matching your search.</p>
         </div>
       ) : (
         <div style={styles.grid}>
@@ -123,24 +133,23 @@ function AgentDetailsPage({ adminId, onSelectAgent }) {
               onClick={() => onSelectAgent(agentId)}
               style={styles.agentCard}
               onMouseEnter={(e) => {
-                e.currentTarget.style.transform = 'translateY(-4px)';
-                e.currentTarget.style.boxShadow = '0 10px 15px -3px rgba(0,0,0,0.1)';
-                e.currentTarget.style.borderColor = '#3b82f6';
+                e.currentTarget.style.transform = 'translateY(-6px)';
+                e.currentTarget.style.boxShadow = '0 12px 20px -5px rgba(0,0,0,0.1)';
+                e.currentTarget.style.borderColor = '#4338ca';
               }}
               onMouseLeave={(e) => {
                 e.currentTarget.style.transform = 'translateY(0)';
-                e.currentTarget.style.boxShadow = '0 2px 4px rgba(0,0,0,0.02)';
+                e.currentTarget.style.boxShadow = '0 4px 6px -1px rgba(0,0,0,0.05)';
                 e.currentTarget.style.borderColor = '#e2e8f0';
               }}
             >
-              {/* Profile Icon / Initial */}
               <div style={styles.avatar}>
-                {agentId.charAt(0).toUpperCase()}
+                <UserIcon />
               </div>
 
               <div style={{ flex: 1 }}>
-                <h3 style={styles.agentName}>Agent: {agentId}</h3>
-                <div style={styles.viewLabel}>Click to view history →</div>
+                <h3 style={styles.agentName}>ID: {agentId}</h3>
+                <div style={styles.viewLabel}>View Activity History →</div>
               </div>
             </div>
           ))}
