@@ -150,7 +150,7 @@ function AgentHistoryPage({ adminId, agentId, onBack }) {
           
           <DataCard label="Break Time" value={rows[0].break_time} color="#ffedd5" textColor="#9a3412" />
           <DataCard label="Normal Orders" value={rows[0].normal_order} color="#dcfce7" textColor="#166534" />
-          <DataCard label="Scheduled Orders" value={rows[0].fce7f2} color="#fae8ff" textColor="#86198f" />
+          <DataCard label="Scheduled Orders" value={rows[0].schedule_order} color="#fae8ff" textColor="#86198f" />
           
           <DataCard label="Assigned Orders" value={rows[0].assign_orderr} color="#e0e7ff" textColor="#3730a3" />
           <DataCard label="App Intent" value={rows[0].app_intent} color="#ffe4e6" textColor="#9f1239" />
