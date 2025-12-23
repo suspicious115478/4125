@@ -4,18 +4,18 @@ import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 
 /* =======================
-   CORE LOGIC (The Roots)
+   THE ROOTS (CORE LOGIC)
 ======================= */
 const secondsToTime = (s) => {
   const h = Math.floor(s / 3600);
   const m = Math.floor((s % 3600) / 60);
-  return `${h.toString().padStart(2, '0')}h ${m.toString().padStart(2, '0')}m`;
+  return `${h}h ${m}m`;
 };
 
 const workingSeconds = (login, logout) => {
   if (!login || !logout || typeof login !== 'string') return 0;
+  const toSec = (t) => t.split(':').reduce((acc, val) => acc * 60 + +val, 0);
   try {
-    const toSec = (t) => t.split(':').reduce((acc, val) => acc * 60 + +val, 0);
     return toSec(logout) - toSec(login);
   } catch (e) { return 0; }
 };
@@ -31,12 +31,8 @@ function AnalysisPage({ adminId }) {
   const [loading, setLoading] = useState(false);
 
   async function runAnalysis() {
-    if (!agentId || !fromDate || !toDate) {
-      alert('INPUT REQUIRED: Parameters missing for system calibration.');
-      return;
-    }
+    if (!agentId || !fromDate || !toDate) return alert('Please fill all parameters.');
     setLoading(true);
-    setResult(null);
 
     try {
       const { data, error } = await supabase
@@ -50,106 +46,104 @@ function AnalysisPage({ adminId }) {
       if (error) throw error;
 
       if (data && data.length > 0) {
-        let totalWorkSec = 0, totalCallSec = 0, totalBreakSec = 0;
-        let totals = { normal_order: 0, schedule_order: 0, assign_orderr: 0, app_intent: 0, employee_cancel: 0, customer_cancel: 0 };
+        let totalWorkSec = 0, totalCallSec = 0;
+        let totals = { normal: 0, cancel: 0, app: 0 };
 
         data.forEach(row => {
           totalWorkSec += workingSeconds(row.login_time, row.logout_time);
           totalCallSec += (Number(row.call_time) || 0) * 60;
-          totalBreakSec += (Number(row.break_time) || 0) * 60;
-          Object.keys(totals).forEach(key => totals[key] += (Number(row[key]) || 0));
+          totals.normal += (row.normal_order || 0) + (row.schedule_order || 0);
+          totals.cancel += (row.employee_cancel || 0) + (row.customer_cancel || 0);
+          totals.app += (row.app_intent || 0);
         });
 
-        const totalOrders = totals.normal_order + totals.schedule_order + totals.assign_orderr;
-        const totalCancels = totals.employee_cancel + totals.customer_cancel;
-        const efficiency = (totalOrders + totalCancels === 0) ? 0 : Math.round((totalOrders / (totalOrders + totalCancels)) * 100);
+        const yieldScore = (totals.normal + totals.cancel === 0) ? 0 : 
+          Math.round((totals.normal / (totals.normal + totals.cancel)) * 100);
 
         setResult({
-          workingDays: new Set(data.map(r => r.date)).size,
-          workingHours: secondsToTime(totalWorkSec),
-          callTime: secondsToTime(totalCallSec),
-          breakTime: secondsToTime(totalBreakSec),
-          efficiency: efficiency,
+          days: new Set(data.map(r => r.date)).size,
+          hours: secondsToTime(totalWorkSec),
+          calls: secondsToTime(totalCallSec),
+          yield: yieldScore,
           ...totals
         });
-      } else { alert("NO_DATA_FOUND: System scan returned 0 results."); }
-    } catch (err) { alert("SYSTEM_ERROR: Data access anomaly."); } 
-    finally { setLoading(false); }
+      } else {
+        alert("No data found for this range.");
+      }
+    } catch (err) {
+      alert("System Error: Unable to fetch data.");
+    } finally {
+      setLoading(false);
+    }
   }
 
   const downloadPDF = () => {
     const doc = new jsPDF();
-    doc.setFontSize(20);
-    doc.text(`Agent Matrix Report: ${agentId}`, 14, 25);
-    const tableData = [
-      ["Operational Days", result.workingDays],
-      ["Total Engaged Time", result.workingHours],
-      ["Efficiency Index", `${result.efficiency}%`],
-      ["Executed Orders", result.normal_order + result.schedule_order],
-      ["Internal Aborts", result.employee_cancel],
-      ["Client Aborts", result.customer_cancel]
-    ];
+    doc.setFontSize(22);
+    doc.text(`AGENT REPORT: ${agentId}`, 14, 25);
     doc.autoTable({
-      startY: 40,
-      head: [['METRIC', 'VALUE']],
-      body: tableData,
+      startY: 35,
+      head: [['Metric', 'Value']],
+      body: [
+        ['Operational Yield', `${result.yield}%`],
+        ['Total Logged Hours', result.hours],
+        ['Call Duration', result.calls],
+        ['Successful Orders', result.normal],
+        ['Total Friction/Cancels', result.cancel],
+      ],
       theme: 'grid',
-      headStyles: { fillColor: [0, 0, 0] }
+      headStyles: { fillColor: [15, 23, 42] }
     });
-    doc.save(`Agent_${agentId}_Matrix.pdf`);
+    doc.save(`Agent_${agentId}_Studio.pdf`);
   };
 
   return (
-    <div style={s.page}>
-      {/* INJECT ANIMATIONS */}
-      <style dangerouslySetInnerHTML={{ __html: animations }} />
-      
-      <div style={s.bgGrid}>
-        {Array.from({ length: 100 }).map((_, i) => <div key={i} className="grid-dot" style={s.gridDot}></div>)}
-      </div>
+    <div style={s.canvas}>
+      {/* BACKGROUND DECOR */}
+      <div style={s.bgGlow}></div>
 
-      <div style={s.commandStrip}>
-        <div style={s.brand}>AGENT_MATRIX_SYSTEM <span style={s.version}>v4.0</span></div>
-        <div style={s.inputCluster}>
-          <input style={s.input} placeholder="ID" value={agentId} onChange={e => setAgentId(e.target.value)} />
+      {/* FLOATING TOP NAV */}
+      <nav style={s.nav}>
+        <div style={s.brand}>
+          <div style={s.brandIcon}></div>
+          <span>STUDIO_ANALYTICS</span>
+        </div>
+        <div style={s.controls}>
+          <input style={s.input} placeholder="AGENT ID" value={agentId} onChange={e => setAgentId(e.target.value)} />
           <input type="date" style={s.input} value={fromDate} onChange={e => setFromDate(e.target.value)} />
           <input type="date" style={s.input} value={toDate} onChange={e => setToDate(e.target.value)} />
-          <button style={s.runBtn} onClick={runAnalysis} disabled={loading}>{loading ? 'CALIBRATING...' : 'EXECUTE'}</button>
-          {result && <button style={s.exportBtn} onClick={downloadPDF}>EXPORT</button>}
+          <button style={s.btn} onClick={runAnalysis}>{loading ? '...' : 'ANALYSIS'}</button>
         </div>
-      </div>
+      </nav>
 
-      <main style={s.dataMap}>
+      {/* DASHBOARD CONTENT */}
+      <main style={s.main}>
         {result ? (
-          <>
-            {/* CORE CIRCLE */}
-            <div style={{...s.core, borderColor: result.efficiency > 70 ? '#22c55e' : '#ef4444'}}>
-              <div className="scan-line" style={s.scanLine}></div>
-              <span style={s.coreLabel}>CORE_EFFICIENCY</span>
-              <span style={s.coreValue}>{result.efficiency}%</span>
-              <span style={s.coreSub}>AGENT_{agentId}</span>
+          <div style={s.content}>
+            <div style={s.header}>
+              <h1 style={s.title}>Performance <span style={s.light}>Matrix</span></h1>
+              <button style={s.exportBtn} onClick={downloadPDF}>Export PDF</button>
             </div>
 
-            {/* FLOATING PILLARS */}
-            <div style={s.leftPillar}>
-              <MetricBox label="OP_DAYS" value={result.workingDays} />
-              <MetricBox label="ENGAGED_TIME" value={result.workingHours} />
-            </div>
+            <div style={s.grid}>
+              <div style={s.bigCard}>
+                <span style={s.tag}>Operational Yield</span>
+                <div style={s.yieldValue}>{result.yield}%</div>
+                <div style={s.progressTrack}><div style={{...s.progressFill, width: `${result.yield}%`}}></div></div>
+              </div>
 
-            <div style={s.rightPillar}>
-              <MetricBox label="ORDERS_EXEC" value={result.normal_order + result.schedule_order} />
-              <MetricBox label="APP_INTENTS" value={result.app_intent} />
+              <div style={s.miniGrid}>
+                <StatBox label="Active Hours" value={result.hours} />
+                <StatBox label="Call Time" value={result.calls} />
+                <StatBox label="Success Ops" value={result.normal} />
+                <StatBox label="Friction" value={result.cancel} isRed />
+              </div>
             </div>
-
-            <div style={s.bottomConduit}>
-              <MetricBox label="ABORT_AGENT" value={result.employee_cancel} isDanger />
-              <MetricBox label="ABORT_CLIENT" value={result.customer_cancel} isDanger />
-            </div>
-          </>
+          </div>
         ) : (
-          <div style={s.idleState}>
-            <div className="pulse-orb" style={s.orb}></div>
-            <p>AWAITING_INITIALIZATION</p>
+          <div style={s.empty}>
+            <div style={s.emptyIcon}></div>
+            <p>Ready for data input. Select agent and range to begin.</p>
           </div>
         )}
       </main>
@@ -157,49 +151,43 @@ function AnalysisPage({ adminId }) {
   );
 }
 
-const MetricBox = ({ label, value, isDanger }) => (
-  <div style={s.metricBox}>
-    <span style={s.metricLabel}>{label}</span>
-    <span style={{...s.metricValue, color: isDanger ? '#ef4444' : '#38bdf8'}}>{value}</span>
+const StatBox = ({ label, value, isRed }) => (
+  <div style={s.statBox}>
+    <span style={s.statLabel}>{label}</span>
+    <span style={{...s.statValue, color: isRed ? '#ef4444' : '#1e293b'}}>{value}</span>
   </div>
 );
 
 /* =======================
-   STYLES & ANIMATIONS
+   STYLES
 ======================= */
-const animations = `
-  @keyframes scan { 0% { top: 0% } 100% { top: 100% } }
-  @keyframes orb-pulse { 0% { transform: scale(1); opacity: 0.3 } 100% { transform: scale(1.5); opacity: 0 } }
-  .scan-line { position: absolute; width: 100%; height: 2px; background: rgba(56, 189, 248, 0.5); animation: scan 3s infinite linear; }
-  .pulse-orb { animation: orb-pulse 2s infinite ease-out; }
-  .grid-dot { transition: all 0.5s; }
-  .grid-dot:hover { background: rgba(56, 189, 248, 0.2); }
-`;
-
 const s = {
-  page: { height: '100vh', backgroundColor: '#0a0e17', color: '#f8fafc', fontFamily: 'monospace', overflow: 'hidden', position: 'relative' },
-  bgGrid: { position: 'absolute', top: 0, width: '100%', height: '100%', display: 'grid', gridTemplateColumns: 'repeat(10, 1fr)', opacity: 0.1 },
-  gridDot: { border: '0.5px solid #334155' },
-  commandStrip: { display: 'flex', justifyContent: 'space-between', padding: '20px 40px', background: 'rgba(15, 23, 42, 0.9)', borderBottom: '1px solid #334155', zIndex: 10, position: 'relative' },
-  brand: { fontSize: '0.8rem', letterSpacing: '2px', fontWeight: 'bold', color: '#38bdf8' },
-  version: { fontSize: '0.6rem', color: '#64748b' },
-  inputCluster: { display: 'flex', gap: '10px' },
-  input: { background: '#000', border: '1px solid #334155', color: '#fff', padding: '5px 10px', fontSize: '0.7rem', outline: 'none' },
-  runBtn: { background: '#38bdf8', border: 'none', color: '#000', fontWeight: 'bold', padding: '5px 15px', cursor: 'pointer', fontSize: '0.7rem' },
-  exportBtn: { background: 'transparent', border: '1px solid #334155', color: '#94a3b8', padding: '5px 15px', fontSize: '0.7rem', cursor: 'pointer' },
-  dataMap: { height: 'calc(100vh - 70px)', display: 'flex', justifyContent: 'center', alignItems: 'center', position: 'relative' },
-  core: { width: '220px', height: '220px', borderRadius: '50%', border: '2px solid', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', position: 'relative', overflow: 'hidden', background: 'radial-gradient(circle, rgba(56,189,248,0.1) 0%, transparent 70%)' },
-  coreLabel: { fontSize: '0.6rem', color: '#94a3b8' },
-  coreValue: { fontSize: '3.5rem', fontWeight: 'bold' },
-  coreSub: { fontSize: '0.7rem', color: '#38bdf8' },
-  leftPillar: { position: 'absolute', left: '15%', display: 'flex', flexDirection: 'column', gap: '40px' },
-  rightPillar: { position: 'absolute', right: '15%', display: 'flex', flexDirection: 'column', gap: '40px' },
-  bottomConduit: { position: 'absolute', bottom: '15%', display: 'flex', gap: '60px' },
-  metricBox: { textAlign: 'center' },
-  metricLabel: { fontSize: '0.6rem', color: '#64748b', display: 'block', marginBottom: '5px' },
-  metricValue: { fontSize: '1.5rem', fontWeight: 'bold' },
-  idleState: { textAlign: 'center', color: '#334155' },
-  orb: { width: '40px', height: '40px', border: '1px solid #38bdf8', borderRadius: '50%', margin: '0 auto 20px' }
+  canvas: { minHeight: '100vh', backgroundColor: '#f4f7f6', color: '#1e293b', fontFamily: '"Inter", sans-serif', position: 'relative', overflow: 'hidden' },
+  bgGlow: { position: 'absolute', top: '-10%', right: '-5%', width: '40vw', height: '40vw', background: 'radial-gradient(circle, rgba(56,189,248,0.15) 0%, transparent 70%)', zIndex: 0 },
+  nav: { display: 'flex', justifyContent: 'space-between', padding: '24px 60px', backgroundColor: 'rgba(255,255,255,0.7)', backdropFilter: 'blur(20px)', borderBottom: '1px solid rgba(0,0,0,0.05)', position: 'sticky', top: 0, zIndex: 10 },
+  brand: { display: 'flex', alignItems: 'center', gap: '12px', fontWeight: '800', fontSize: '12px', letterSpacing: '2px' },
+  brandIcon: { width: '10px', height: '10px', backgroundColor: '#000', borderRadius: '2px' },
+  controls: { display: 'flex', gap: '15px' },
+  input: { border: 'none', borderBottom: '1px solid #ddd', padding: '8px 0', outline: 'none', background: 'transparent', fontSize: '13px', width: '120px' },
+  btn: { backgroundColor: '#000', color: '#fff', border: 'none', padding: '10px 24px', borderRadius: '4px', cursor: 'pointer', fontWeight: '600' },
+  main: { padding: '60px', display: 'flex', justifyContent: 'center', zIndex: 1, position: 'relative' },
+  content: { width: '100%', maxWidth: '1000px' },
+  header: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '40px' },
+  title: { fontSize: '42px', fontWeight: '800', letterSpacing: '-2px', margin: 0 },
+  light: { fontWeight: '300', color: '#94a3b8' },
+  exportBtn: { background: '#fff', border: '1px solid #e2e8f0', padding: '8px 16px', borderRadius: '6px', cursor: 'pointer', fontWeight: '600' },
+  grid: { display: 'flex', gap: '20px' },
+  bigCard: { flex: 1.5, background: '#fff', padding: '40px', borderRadius: '24px', border: '1px solid rgba(0,0,0,0.03)', boxShadow: '0 20px 40px rgba(0,0,0,0.03)' },
+  tag: { fontSize: '11px', fontWeight: '700', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '1px' },
+  yieldValue: { fontSize: '84px', fontWeight: '800', margin: '15px 0' },
+  progressTrack: { height: '8px', background: '#f1f5f9', borderRadius: '4px', overflow: 'hidden' },
+  progressFill: { height: '100%', background: '#000', transition: 'width 1s ease-out' },
+  miniGrid: { flex: 1, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' },
+  statBox: { background: 'rgba(255,255,255,0.6)', backdropFilter: 'blur(10px)', padding: '24px', borderRadius: '18px', border: '1px solid rgba(0,0,0,0.02)', display: 'flex', flexDirection: 'column', gap: '8px' },
+  statLabel: { fontSize: '10px', fontWeight: '700', color: '#94a3b8', textTransform: 'uppercase' },
+  statValue: { fontSize: '20px', fontWeight: '800' },
+  empty: { textAlign: 'center', marginTop: '100px', color: '#cbd5e1' },
+  emptyIcon: { width: '40px', height: '40px', border: '2px solid #e2e8f0', borderRadius: '50%', margin: '0 auto 20px' }
 };
 
 export default AnalysisPage;
