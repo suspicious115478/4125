@@ -26,7 +26,7 @@ function Sidebar({ activePage, setActivePage }) {
     <div
       style={{
         width: '240px',
-        height: '100vh',
+        minHeight: '100vh',          // ✅ key change
         background: '#020617',
         display: 'flex',
         flexDirection: 'column',
@@ -40,14 +40,21 @@ function Sidebar({ activePage, setActivePage }) {
           fontSize: '16px',
           fontWeight: 600,
           color: '#ffffff',
-          borderBottom: '1px solid #1e293b'
+          borderBottom: '1px solid #1e293b',
+          flexShrink: 0
         }}
       >
         Admin Dashboard
       </div>
 
-      {/* Menu */}
-      <div style={{ marginTop: '12px', flex: 1 }}>
+      {/* Menu (scrolls if needed) */}
+      <div
+        style={{
+          marginTop: '12px',
+          flex: 1,
+          overflowY: 'auto'          // ✅ menu scrolls if long
+        }}
+      >
         {menuItem('agents', 'Agents')}
         {menuItem('agentDetails', 'Agent Details')}
         {menuItem('analysis', 'Analysis')}
@@ -61,7 +68,8 @@ function Sidebar({ activePage, setActivePage }) {
           padding: '14px 18px',
           fontSize: '12px',
           color: '#64748b',
-          borderTop: '1px solid #1e293b'
+          borderTop: '1px solid #1e293b',
+          flexShrink: 0
         }}
       >
         © 2025 Company
@@ -71,4 +79,3 @@ function Sidebar({ activePage, setActivePage }) {
 }
 
 export default Sidebar;
-
