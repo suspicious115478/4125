@@ -1,8 +1,26 @@
 import { useState } from 'react';
 import { supabase } from '../lib/supabase';
+import jsPDF from 'jspdf';
+import 'jspdf-autotable';
 
 /* =======================
-   THE MONOLITH UI
+   UTILITIES (The Roots)
+======================= */
+const minutesToSeconds = (v) => (Number(v) || 0) * 60;
+const secondsToTime = (s) => {
+  const h = Math.floor(s / 3600);
+  const m = Math.floor((s % 3600) / 60);
+  return `${h}H ${m}M`;
+};
+
+const workingSeconds = (login, logout) => {
+  if (!login || !logout) return 0;
+  const toSec = (t) => t.split(':').reduce((acc, val) => acc * 60 + +val, 0);
+  return toSec(logout) - toSec(login);
+};
+
+/* =======================
+   COMPONENT
 ======================= */
 function AnalysisPage({ adminId }) {
   const [agentId, setAgentId] = useState('');
@@ -12,147 +30,137 @@ function AnalysisPage({ adminId }) {
   const [loading, setLoading] = useState(false);
 
   async function runAnalysis() {
-    if (!agentId) return;
+    if (!agentId || !fromDate || !toDate) return alert('FIELDS REQUIRED');
     setLoading(true);
-    const { data } = await supabase.from('agent_details').select('*').eq('agent_id', agentId);
-    // Simple mock result for the unique UI demo
-    setTimeout(() => {
-      setResult({ hours: '142', success: '88%', cancels: '12' });
-      setLoading(false);
-    }, 800);
+    const { data, error } = await supabase
+      .from('agent_details')
+      .select('*')
+      .eq('admin_id', adminId)
+      .eq('agent_id', agentId)
+      .gte('date', fromDate)
+      .lte('date', toDate);
+
+    if (data) {
+      const uniqueDays = new Set(data.map(row => row.date)).size;
+      let wSec = 0, cSec = 0, bSec = 0;
+      let totals = { normal_order: 0, schedule_order: 0, assign_orderr: 0, app_intent: 0, employee_cancel: 0, customer_cancel: 0 };
+
+      data.forEach(row => {
+        wSec += workingSeconds(row.login_time, row.logout_time);
+        cSec += minutesToSeconds(row.call_time);
+        bSec += minutesToSeconds(row.break_time);
+        Object.keys(totals).forEach(key => totals[key] += (row[key] || 0));
+      });
+
+      setResult({ workingDays: uniqueDays, workingHours: secondsToTime(wSec), callTime: secondsToTime(cSec), breakTime: secondsToTime(bSec), ...totals });
+    }
+    setLoading(false);
   }
+
+  const downloadPDF = () => {
+    const doc = new jsPDF();
+    doc.setFontSize(24);
+    doc.text(`AGENT REPORT: ${agentId}`, 14, 25);
+    doc.autoTable({
+      startY: 40,
+      head: [['METRIC', 'VALUE']],
+      body: Object.entries(result).map(([k, v]) => [k.toUpperCase().replace('_', ' '), v]),
+      theme: 'plain',
+      headStyles: { fillColor: [0, 0, 0], textColor: [255, 255, 255] }
+    });
+    doc.save(`Report_${agentId}.pdf`);
+  };
 
   return (
     <div style={s.container}>
-      {/* BACKGROUND DEPTH */}
-      <div style={s.scanLine}></div>
-
-      {/* LEFT: DATA MONOLITH */}
-      <div style={s.monolith}>
-        <div style={s.monolithHeader}>
-          <span style={s.statusDot}></span>
-          <h1 style={s.title}>CORE_SCANNER_v2</h1>
+      {/* HEADER SECTION - BOLD & FUNKY */}
+      <header style={s.header}>
+        <div style={s.brand}>
+          <span style={s.dot}>●</span> 
+          <span style={s.brandText}>REPORT_SYSTEM_2.0</span>
         </div>
-
-        <div style={s.contentArea}>
-          {result ? (
-            <div style={s.dataStack}>
-              <Strip label="IDENT_KEY" value={agentId} color="#fff" />
-              <Strip label="OPERATIONAL_HOURS" value={result.hours} color="#38bdf8" />
-              <Strip label="SUCCESS_RATIO" value={result.success} color="#22c55e" />
-              <Strip label="ABORT_COUNT" value={result.cancels} color="#ef4444" />
-              
-              <div style={s.visualizer}>
-                {/* A decorative CSS-only wave/data bar */}
-                {[...Array(20)].map((_, i) => (
-                  <div key={i} style={{
-                    ...s.bar, 
-                    height: `${Math.random() * 100}%`,
-                    animationDelay: `${i * 0.1}s`
-                  }}></div>
-                ))}
-              </div>
-            </div>
-          ) : (
-            <div style={s.placeholder}>
-              <div style={s.circlePulse}></div>
-              <p>IDLE_WAITING_FOR_INPUT</p>
-            </div>
-          )}
+        <div style={s.giantTitle}>
+          ANALYZE <span style={s.outlineText}>{agentId || 'AGENT'}</span>
         </div>
-      </div>
+      </header>
 
-      {/* RIGHT: FLOATING COMMAND DOCK */}
-      <div style={s.commandDock}>
-        <h3 style={s.dockLabel}>COMMAND_INPUT</h3>
-        <input 
-          style={s.minimalInput} 
-          placeholder="AGENT_ID" 
-          value={agentId} 
-          onChange={e => setAgentId(e.target.value)} 
-        />
-        <input 
-          type="date" 
-          style={s.minimalInput} 
-          value={fromDate} 
-          onChange={e => setFromDate(e.target.value)} 
-        />
-        <button style={s.actionBtn} onClick={runAnalysis}>
-          {loading ? '...' : 'SCAN'}
+      {/* SEARCH BAR - HIGH CONTRAST */}
+      <div style={s.searchBar}>
+        <div style={s.inputBox}>
+          <label style={s.label}>AGENT_ID</label>
+          <input style={s.input} value={agentId} onChange={e => setAgentId(e.target.value)} placeholder="001" />
+        </div>
+        <div style={s.inputBox}>
+          <label style={s.label}>FROM</label>
+          <input type="date" style={s.input} value={fromDate} onChange={e => setFromDate(e.target.value)} />
+        </div>
+        <div style={s.inputBox}>
+          <label style={s.label}>TO</label>
+          <input type="date" style={s.input} value={toDate} onChange={e => setToDate(e.target.value)} />
+        </div>
+        <button style={s.runBtn} onClick={runAnalysis}>
+          {loading ? '...' : 'RUN_ANALYSIS'}
         </button>
       </div>
+
+      {/* RESULTS GRID - SWISS STYLE */}
+      {result ? (
+        <div style={s.content}>
+            <div style={s.sidebar}>
+                <div style={s.statBig}>
+                    <div style={s.label}>SUCCESS_RATE</div>
+                    <div style={s.bigValue}>{Math.round((result.normal_order / (result.normal_order + result.employee_cancel || 1)) * 100)}%</div>
+                </div>
+                <button style={s.pdfBtn} onClick={downloadPDF}>DOWNLOAD_PDF_REPORT</button>
+            </div>
+            
+            <div style={s.grid}>
+                <StatBox label="WORKING_DAYS" value={result.workingDays} />
+                <StatBox label="TOTAL_HOURS" value={result.workingHours} highlight />
+                <StatBox label="CALL_TIME" value={result.callTime} />
+                <StatBox label="BREAK_TIME" value={result.breakTime} />
+                <StatBox label="NORMAL_ORDERS" value={result.normal_order} />
+                <StatBox label="CUSTOMER_CANCELS" value={result.customer_cancel} danger />
+            </div>
+        </div>
+      ) : (
+        <div style={s.empty}>AWAITING_PARAMETERS_FOR_GENERATION...</div>
+      )}
     </div>
   );
 }
 
-const Strip = ({ label, value, color }) => (
-  <div style={s.strip}>
-    <div style={{...s.stripIndicator, backgroundColor: color}}></div>
-    <div style={s.stripText}>
-      <span style={s.stripLabel}>{label}</span>
-      <span style={{...s.stripValue, color}}>{value}</span>
-    </div>
+const StatBox = ({ label, value, highlight, danger }) => (
+  <div style={{...s.statBox, backgroundColor: highlight ? '#DFFF00' : danger ? '#ff4d4d' : '#fff'}}>
+    <div style={{...s.label, color: highlight || danger ? '#000' : '#888'}}>{label}</div>
+    <div style={{...s.statValue, color: '#000'}}>{value}</div>
   </div>
 );
 
 /* =======================
-   STYLING (The "Different" Part)
+   THE FUNKY STYLE OBJECT
 ======================= */
 const s = {
-  container: {
-    height: '100vh',
-    backgroundColor: '#050505',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    fontFamily: '"Courier New", Courier, monospace',
-    color: '#38bdf8',
-    overflow: 'hidden',
-    perspective: '1000px'
-  },
-  scanLine: {
-    position: 'absolute', width: '100%', height: '2px', background: 'rgba(56, 189, 248, 0.1)',
-    top: '0', animation: 'scan 4s linear infinite', zIndex: 1
-  },
-  monolith: {
-    width: '450px',
-    height: '80vh',
-    background: 'linear-gradient(180deg, #0f172a 0%, #020617 100%)',
-    border: '1px solid rgba(56, 189, 248, 0.3)',
-    borderRadius: '4px',
-    padding: '30px',
-    display: 'flex',
-    flexDirection: 'column',
-    boxShadow: '0 0 50px rgba(0,0,0,1), 0 0 20px rgba(56, 189, 248, 0.1)',
-    transform: 'rotateY(10deg)',
-    position: 'relative',
-    zIndex: 2
-  },
-  monolithHeader: { display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '40px' },
-  statusDot: { width: '8px', height: '8px', background: '#22c55e', borderRadius: '50%', boxShadow: '0 0 10px #22c55e' },
-  title: { fontSize: '0.9rem', letterSpacing: '3px', margin: 0, color: '#fff' },
-  contentArea: { flex: 1, display: 'flex', flexDirection: 'column' },
-  strip: { display: 'flex', gap: '15px', padding: '20px 0', borderBottom: '1px solid rgba(255,255,255,0.05)' },
-  stripIndicator: { width: '4px', height: 'auto', borderRadius: '2px' },
-  stripText: { display: 'flex', flexDirection: 'column' },
-  stripLabel: { fontSize: '0.6rem', color: '#64748b', marginBottom: '5px' },
-  stripValue: { fontSize: '1.4rem', fontWeight: 'bold' },
-  visualizer: { display: 'flex', alignItems: 'flex-end', gap: '2px', height: '60px', marginTop: '40px' },
-  bar: { flex: 1, background: '#38bdf8', opacity: 0.5, animation: 'bounce 1s infinite alternate' },
-  commandDock: {
-    marginLeft: '50px', width: '250px', padding: '20px', background: 'rgba(15, 23, 42, 0.5)',
-    backdropFilter: 'blur(10px)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px'
-  },
-  minimalInput: {
-    width: '100%', background: 'transparent', border: 'none', borderBottom: '1px solid #334155',
-    color: '#fff', padding: '10px 0', marginBottom: '20px', outline: 'none', fontSize: '0.8rem'
-  },
-  actionBtn: {
-    width: '100%', padding: '12px', background: '#38bdf8', color: '#000', border: 'none',
-    fontWeight: 'bold', cursor: 'pointer', letterSpacing: '2px'
-  },
-  placeholder: { flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: '#1e293b' },
-  circlePulse: { width: '40px', height: '40px', border: '2px solid #1e293b', borderRadius: '50%', marginBottom: '20px' }
+  container: { backgroundColor: '#f0f0f0', minHeight: '100vh', padding: '40px', fontFamily: 'Helvetica, Arial, sans-serif', color: '#000' },
+  header: { marginBottom: '60px' },
+  brand: { display: 'flex', alignItems: 'center', gap: '10px', fontWeight: '900', fontSize: '14px', marginBottom: '20px' },
+  dot: { color: '#DFFF00', fontSize: '24px' },
+  giantTitle: { fontSize: '8vw', fontWeight: '900', lineHeight: '0.8', letterSpacing: '-4px' },
+  outlineText: { WebkitTextStroke: '2px #000', color: 'transparent' },
+  searchBar: { display: 'flex', backgroundColor: '#000', padding: '20px', borderRadius: '0px', gap: '30px', alignItems: 'flex-end', marginBottom: '40px' },
+  inputBox: { display: 'flex', flexDirection: 'column', gap: '8px', flex: 1 },
+  label: { fontSize: '10px', fontWeight: 'bold', letterSpacing: '1px' },
+  input: { background: 'transparent', border: 'none', borderBottom: '2px solid #333', color: '#DFFF00', fontSize: '18px', outline: 'none', padding: '5px 0' },
+  runBtn: { backgroundColor: '#DFFF00', border: 'none', padding: '15px 30px', fontWeight: '900', cursor: 'pointer' },
+  content: { display: 'flex', gap: '40px' },
+  sidebar: { width: '300px', display: 'flex', flexDirection: 'column', gap: '20px' },
+  statBig: { backgroundColor: '#000', color: '#fff', padding: '40px' },
+  bigValue: { fontSize: '60px', fontWeight: '900' },
+  pdfBtn: { backgroundColor: '#fff', border: '2px solid #000', padding: '20px', fontWeight: '900', cursor: 'pointer', textAlign: 'left' },
+  grid: { flex: 1, display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '10px' },
+  statBox: { padding: '30px', border: '1px solid #ddd' },
+  statValue: { fontSize: '32px', fontWeight: '900', marginTop: '10px' },
+  empty: { padding: '100px 0', borderTop: '2px solid #000', fontSize: '20px', fontWeight: '900' }
 };
 
 export default AnalysisPage;
