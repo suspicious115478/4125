@@ -4,30 +4,34 @@ import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 
 /* =======================
-   UTILITIES
+   ANIMATIONS & DYNAMICS
 ======================= */
-function minutesToSeconds(value) {
-  if (!value) return 0;
-  const minutes = Number(value);
-  return isNaN(minutes) ? 0 : minutes * 60;
-}
-
-function secondsToTime(seconds) {
-  const h = Math.floor(seconds / 3600);
-  const m = Math.floor((seconds % 3600) / 60);
-  const s = seconds % 60;
-  return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
-}
-
-function workingSeconds(login, logout) {
-  if (!login || !logout) return 0;
-  const [lh, lm, ls] = login.split(':').map(Number);
-  const [oh, om, os] = logout.split(':').map(Number);
-  return (oh * 3600 + om * 60 + os) - (lh * 3600 + lm * 60 + ls);
-}
+const glassStyle = {
+  background: 'rgba(255, 255, 255, 0.7)',
+  backdropFilter: 'blur(12px)',
+  WebkitBackdropFilter: 'blur(12px)',
+  border: '1px solid rgba(255, 255, 255, 0.3)',
+};
 
 /* =======================
-   COMPONENT
+   UTILITIES
+======================= */
+const minutesToSeconds = (v) => (Number(v) || 0) * 60;
+const secondsToTime = (s) => {
+  const h = Math.floor(s / 3600);
+  const m = Math.floor((s % 3600) / 60);
+  const sec = s % 60;
+  return `${h}h ${m}m ${sec}s`;
+};
+
+const workingSeconds = (login, logout) => {
+  if (!login || !logout) return 0;
+  const toSec = (t) => t.split(':').reduce((acc, val) => acc * 60 + +val, 0);
+  return toSec(logout) - toSec(login);
+};
+
+/* =======================
+   COMPONENTS
 ======================= */
 function AnalysisPage({ adminId }) {
   const [agentId, setAgentId] = useState('');
@@ -37,11 +41,9 @@ function AnalysisPage({ adminId }) {
   const [loading, setLoading] = useState(false);
 
   async function runAnalysis() {
-    if (!agentId || !fromDate || !toDate) {
-      alert('Please fill all fields');
-      return;
-    }
+    if (!agentId || !fromDate || !toDate) return alert('Missing fields!');
     setLoading(true);
+    
     const { data, error } = await supabase
       .from('agent_details')
       .select('*')
@@ -50,236 +52,275 @@ function AnalysisPage({ adminId }) {
       .gte('date', fromDate)
       .lte('date', toDate);
 
-    if (error) {
-      console.error('Analysis error:', error);
+    if (error || !data) {
       setResult(null);
     } else {
-      const uniqueDays = new Set(data.map(row => row.date)).size;
-      let totalWorkSeconds = 0, totalCallSeconds = 0, totalBreakSeconds = 0;
+      const uniqueDays = new Set(data.map(r => r.date)).size;
+      let wSec = 0, cSec = 0, bSec = 0;
       let totals = { normal_order: 0, schedule_order: 0, assign_orderr: 0, app_intent: 0, employee_cancel: 0, customer_cancel: 0 };
 
-      data.forEach(row => {
-        totalWorkSeconds += workingSeconds(row.login_time, row.logout_time);
-        totalCallSeconds += minutesToSeconds(row.call_time);
-        totalBreakSeconds += minutesToSeconds(row.break_time);
-        totals.normal_order += row.normal_order || 0;
-        totals.schedule_order += row.schedule_order || 0;
-        totals.assign_orderr += row.assign_orderr || 0;
-        totals.app_intent += row.app_intent || 0;
-        totals.employee_cancel += row.employee_cancel || 0;
-        totals.customer_cancel += row.customer_cancel || 0;
+      data.forEach(r => {
+        wSec += workingSeconds(r.login_time, r.logout_time);
+        cSec += minutesToSeconds(r.call_time);
+        bSec += minutesToSeconds(r.break_time);
+        Object.keys(totals).forEach(key => totals[key] += (r[key] || 0));
       });
 
       setResult({
         workingDays: uniqueDays,
-        workingHours: secondsToTime(totalWorkSeconds),
-        callTime: secondsToTime(totalCallSeconds),
-        breakTime: secondsToTime(totalBreakSeconds),
+        workingHours: secondsToTime(wSec),
+        callTime: secondsToTime(cSec),
+        breakTime: secondsToTime(bSec),
         ...totals
       });
     }
     setLoading(false);
   }
 
-  // PDF GENERATION FUNCTION
-  const downloadPDF = () => {
-    const doc = new jsPDF();
-
-    // Add Title & Metadata
-    doc.setFontSize(18);
-    doc.text(`Agent Performance Report: ${agentId}`, 14, 22);
-    doc.setFontSize(11);
-    doc.setTextColor(100);
-    doc.text(`Period: ${fromDate} to ${toDate}`, 14, 30);
-    doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 14, 36);
-
-    // Define Table Rows
-    const tableRows = [
-      ["Metric", "Value"],
-      ["Total Working Days", result.workingDays],
-      ["Total Working Hours", result.workingHours],
-      ["Total Call Time", result.callTime],
-      ["Total Break Time", result.breakTime],
-      ["Normal Orders", result.normal_order],
-      ["Scheduled Orders", result.schedule_order],
-      ["Assigned Orders", result.assign_orderr],
-      ["App Intent", result.app_intent],
-      ["Employee Cancels", result.employee_cancel],
-      ["Customer Cancels", result.customer_cancel],
-    ];
-
-    // AutoTable Plugin usage
-    doc.autoTable({
-      head: [tableRows[0]],
-      body: tableRows.slice(1),
-      startY: 45,
-      theme: 'grid',
-      headStyles: { fillColor: [30, 41, 59] }, // Slate color to match UI
-      styles: { fontSize: 10, cellPadding: 5 }
-    });
-
-    doc.save(`Analysis_${agentId}_${fromDate}.pdf`);
-  };
-
-  const styles = {
-    container: {
-      padding: '30px',
-      fontFamily: '"Segoe UI", Roboto, sans-serif',
-      backgroundColor: '#f1f5f9',
-      minHeight: '100vh',
-    },
-    topBar: {
-      display: 'flex',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      marginBottom: '30px',
-      backgroundColor: '#ffffff',
-      padding: '20px 25px',
-      borderRadius: '16px',
-      boxShadow: '0 4px 12px rgba(0,0,0,0.03)',
-    },
-    headerText: {
-      borderLeft: '4px solid #3b82f6',
-      paddingLeft: '20px',
-    },
-    controls: {
-      display: 'flex',
-      gap: '12px',
-      alignItems: 'flex-end',
-    },
-    inputGroup: {
-      display: 'flex',
-      flexDirection: 'column',
-      gap: '4px',
-    },
-    label: {
-      fontSize: '11px',
-      fontWeight: '700',
-      color: '#94a3b8',
-      textTransform: 'uppercase',
-    },
-    input: {
-      padding: '10px 12px',
-      borderRadius: '8px',
-      border: '1px solid #cbd5e1',
-      fontSize: '14px',
-      outline: 'none',
-      backgroundColor: '#f8fafc',
-    },
-    analyzeBtn: {
-      padding: '10px 24px',
-      backgroundColor: '#1e293b',
-      color: 'white',
-      border: 'none',
-      borderRadius: '8px',
-      fontWeight: '600',
-      cursor: 'pointer',
-      transition: 'background 0.2s',
-    },
-    downloadBtn: {
-      padding: '10px 20px',
-      backgroundColor: '#059669', // Emerald color
-      color: 'white',
-      border: 'none',
-      borderRadius: '8px',
-      fontWeight: '600',
-      cursor: 'pointer',
-      display: 'flex',
-      alignItems: 'center',
-      gap: '8px'
-    },
-    grid: {
-      display: 'grid',
-      gridTemplateColumns: 'repeat(3, 1fr)',
-      gap: '24px',
-    }
-  };
-
   return (
-    <div style={styles.container}>
-      {/* TOP BAR */}
-      <div style={styles.topBar}>
-        <div style={styles.headerText}>
-          <h2 style={{ margin: 0, color: '#0f172a', fontSize: '22px' }}>
-            Agent: {agentId || '____'}
-          </h2>
-          <p style={{ margin: 0, color: '#64748b', fontSize: '14px' }}>Performance Analytics Range</p>
+    <div style={styles.page}>
+      {/* SIDEBAR CONTROLS */}
+      <div style={styles.sidebar}>
+        <div style={styles.brand}>
+          <div style={styles.logoBox}>A</div>
+          <h2 style={{ margin: 0, fontSize: '1.2rem' }}>Analytics</h2>
         </div>
 
-        <div style={styles.controls}>
-          <div style={styles.inputGroup}>
-            <span style={styles.label}>Agent ID</span>
-            <input 
-              style={styles.input} 
-              placeholder="e.g. 1234" 
-              value={agentId} 
-              onChange={e => setAgentId(e.target.value)} 
-            />
-          </div>
-          <div style={styles.inputGroup}>
-            <span style={styles.label}>From</span>
-            <input type="date" style={styles.input} value={fromDate} onChange={e => setFromDate(e.target.value)} />
-          </div>
-          <div style={styles.inputGroup}>
-            <span style={styles.label}>To</span>
-            <input type="date" style={styles.input} value={toDate} onChange={e => setToDate(e.target.value)} />
-          </div>
-          <button style={styles.analyzeBtn} onClick={runAnalysis}>Run Analysis</button>
+        <div style={styles.inputStack}>
+          <InputGroup label="Agent ID" value={agentId} onChange={setAgentId} placeholder="ID..." />
+          <InputGroup label="From" type="date" value={fromDate} onChange={setFromDate} />
+          <InputGroup label="To" type="date" value={toDate} onChange={setToDate} />
           
-          {/* PDF DOWNLOAD BUTTON */}
+          <button 
+            style={{ ...styles.primaryBtn, marginTop: '20px' }} 
+            onClick={runAnalysis}
+            disabled={loading}
+          >
+            {loading ? 'Processing...' : 'Run Intelligence'}
+          </button>
+        </div>
+      </div>
+
+      {/* MAIN DASHBOARD */}
+      <main style={styles.main}>
+        <header style={styles.header}>
+          <div>
+            <h1 style={{ margin: 0 }}>Agent Performance</h1>
+            <p style={{ color: '#64748b' }}>Dashboard {'>'} {agentId || 'Overview'}</p>
+          </div>
           {result && (
-            <button style={styles.downloadBtn} onClick={downloadPDF}>
-              <span>📥</span> Download PDF
+            <button style={styles.downloadBtn} onClick={() => downloadPDF(result, agentId, fromDate, toDate)}>
+              Export Report
             </button>
           )}
-        </div>
-      </div>
+        </header>
 
-      {/* DASHBOARD GRID */}
-      {loading ? (
-        <div style={{ textAlign: 'center', padding: '100px', color: '#64748b' }}>Processing Big Data...</div>
-      ) : result ? (
-        <div style={styles.grid}>
-          <DataCard label="Total Working Days" value={result.workingDays} color="#dbeafe" textColor="#1e40af" />
-          <DataCard label="Total Working Hours" value={result.workingHours} color="#ede9fe" textColor="#5b21b6" />
-          <DataCard label="Total Call Time" value={result.callTime} color="#d1fae5" textColor="#065f46" />
-          
-          <DataCard label="Total Break Time" value={result.breakTime} color="#ffedd5" textColor="#9a3412" />
-          <DataCard label="Normal Orders" value={result.normal_order} color="#dcfce7" textColor="#166534" />
-          <DataCard label="Scheduled Orders" value={result.schedule_order} color="#fae8ff" textColor="#86198f" />
-          
-          <DataCard label="Assigned Orders" value={result.assign_orderr} color="#e0e7ff" textColor="#3730a3" />
-          <DataCard label="App Intent" value={result.app_intent} color="#ffe4e6" textColor="#9f1239" />
-          <DataCard label="Employee Cancels" value={result.employee_cancel} color="#f1f5f9" textColor="#334155" />
-          
-          <DataCard label="Customer Cancels" value={result.customer_cancel} color="#fee2e2" textColor="#991b1b" />
-        </div>
-      ) : (
-        <div style={{ textAlign: 'center', padding: '100px', color: '#94a3b8', border: '2px dashed #cbd5e1', borderRadius: '20px' }}>
-          Enter Agent ID and Date Range to generate the analysis dashboard.
-        </div>
-      )}
+        {loading ? (
+          <div style={styles.loaderContainer}>
+             <div className="pulse-loader" style={styles.pulse}></div>
+             <p>Analyzing behavioral data...</p>
+          </div>
+        ) : result ? (
+          <div style={styles.grid}>
+            <StatCard label="Active Days" value={result.workingDays} icon="📅" color="#3b82f6" />
+            <StatCard label="Work Duration" value={result.workingHours} icon="🕒" color="#8b5cf6" />
+            <StatCard label="Call Duration" value={result.callTime} icon="📞" color="#10b981" />
+            <StatCard label="Break Duration" value={result.breakTime} icon="☕" color="#f59e0b" />
+            <StatCard label="Success Orders" value={result.normal_order} icon="✅" color="#10b981" />
+            <StatCard label="Scheduled" value={result.schedule_order} icon="📅" color="#ec4899" />
+            <StatCard label="Assigned" value={result.assign_orderr} icon="📌" color="#6366f1" />
+            <StatCard label="App Intent" value={result.app_intent} icon="📱" color="#f43f5e" />
+            <StatCard label="Agent Cancel" value={result.employee_cancel} icon="❌" color="#64748b" />
+            <StatCard label="User Cancel" value={result.customer_cancel} icon="⚠️" color="#ef4444" />
+          </div>
+        ) : (
+          <div style={styles.emptyState}>
+            <div style={{ fontSize: '4rem' }}>📊</div>
+            <h3>Waiting for Parameters</h3>
+            <p>Select an agent and date range from the left panel to begin.</p>
+          </div>
+        )}
+      </main>
     </div>
   );
 }
 
-function DataCard({ label, value, color, textColor }) {
-  return (
-    <div style={{
-      backgroundColor: color,
-      padding: '30px 25px',
-      borderRadius: '20px',
-      boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)',
-      border: '1px solid rgba(0,0,0,0.05)'
-    }}>
-      <div style={{ fontSize: '12px', fontWeight: '700', color: textColor, textTransform: 'uppercase', marginBottom: '10px', opacity: 0.8 }}>
-        {label}
-      </div>
-      <div style={{ fontSize: '32px', fontWeight: '800', color: textColor }}>
-        {value || (value === 0 ? 0 : '—')}
-      </div>
+/* =======================
+   SUB-COMPONENTS
+======================= */
+const InputGroup = ({ label, type = "text", ...props }) => (
+  <div style={styles.inputGroup}>
+    <label style={styles.label}>{label}</label>
+    <input 
+        type={type} 
+        style={styles.input} 
+        onChange={(e) => props.onChange(e.target.value)}
+        {...props} 
+    />
+  </div>
+);
+
+const StatCard = ({ label, value, icon, color }) => (
+  <div style={{ ...styles.card, borderTop: `4px solid ${color}` }}>
+    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '15px' }}>
+        <span style={styles.cardLabel}>{label}</span>
+        <span style={{ fontSize: '1.2rem' }}>{icon}</span>
     </div>
-  );
-}
+    <div style={styles.cardValue}>{value}</div>
+  </div>
+);
+
+/* =======================
+   STYLES (JS OBJECTS)
+======================= */
+const styles = {
+  page: {
+    display: 'flex',
+    minHeight: '100vh',
+    backgroundColor: '#f8fafc',
+    color: '#1e293b',
+    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+  },
+  sidebar: {
+    width: '300px',
+    backgroundColor: '#0f172a',
+    color: 'white',
+    padding: '40px 24px',
+    display: 'flex',
+    flexDirection: 'column',
+    position: 'fixed',
+    height: '100vh',
+  },
+  brand: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '12px',
+    marginBottom: '50px',
+  },
+  logoBox: {
+    width: '35px',
+    height: '35px',
+    backgroundColor: '#3b82f6',
+    borderRadius: '8px',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    fontWeight: 'bold',
+  },
+  main: {
+    marginLeft: '300px',
+    flex: 1,
+    padding: '40px',
+  },
+  header: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: '40px',
+  },
+  inputStack: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '20px',
+  },
+  inputGroup: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '8px',
+  },
+  label: {
+    fontSize: '0.75rem',
+    textTransform: 'uppercase',
+    letterSpacing: '0.05em',
+    color: '#94a3b8',
+  },
+  input: {
+    padding: '12px',
+    borderRadius: '10px',
+    border: 'none',
+    backgroundColor: '#1e293b',
+    color: 'white',
+    fontSize: '0.9rem',
+    outline: 'none',
+  },
+  primaryBtn: {
+    padding: '14px',
+    backgroundColor: '#3b82f6',
+    color: 'white',
+    border: 'none',
+    borderRadius: '10px',
+    fontWeight: '600',
+    cursor: 'pointer',
+    transition: 'transform 0.2s',
+  },
+  downloadBtn: {
+    padding: '10px 20px',
+    backgroundColor: 'white',
+    border: '1px solid #e2e8f0',
+    borderRadius: '8px',
+    fontWeight: '600',
+    cursor: 'pointer',
+    boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
+  },
+  grid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))',
+    gap: '24px',
+  },
+  card: {
+    backgroundColor: 'white',
+    padding: '24px',
+    borderRadius: '16px',
+    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)',
+  },
+  cardLabel: {
+    fontSize: '0.85rem',
+    color: '#64748b',
+    fontWeight: '500',
+  },
+  cardValue: {
+    fontSize: '1.5rem',
+    fontWeight: '700',
+    color: '#0f172a',
+  },
+  emptyState: {
+    textAlign: 'center',
+    padding: '100px',
+    color: '#94a3b8',
+  },
+  loaderContainer: {
+    textAlign: 'center',
+    padding: '100px',
+  },
+  pulse: {
+    width: '40px',
+    height: '40px',
+    backgroundColor: '#3b82f6',
+    borderRadius: '50%',
+    margin: '0 auto 20px',
+    animation: 'pulse 1.5s infinite ease-in-out',
+  }
+};
+
+/* =======================
+   PDF LOGIC
+======================= */
+const downloadPDF = (result, agentId, fromDate, toDate) => {
+  const doc = new jsPDF();
+  doc.setFontSize(20);
+  doc.text(`Performance Report: ${agentId}`, 14, 20);
+  doc.setFontSize(10);
+  doc.text(`Timeline: ${fromDate} to ${toDate}`, 14, 28);
+  
+  const rows = Object.entries(result).map(([k, v]) => [k.replace(/_/g, ' '), v]);
+  doc.autoTable({
+    head: [['Metric', 'Value']],
+    body: rows,
+    startY: 40,
+    theme: 'striped',
+    headStyles: { fillColor: [59, 130, 246] }
+  });
+  doc.save(`Agent_${agentId}_Report.pdf`);
+};
 
 export default AnalysisPage;
