@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { supabase } from '../lib/supabase';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
@@ -17,9 +17,7 @@ const workingSeconds = (login, logout) => {
   try {
     const toSec = (t) => t.split(':').reduce((acc, val) => acc * 60 + +val, 0);
     return toSec(logout) - toSec(login);
-  } catch (e) {
-    return 0;
-  }
+  } catch (e) { return 0; }
 };
 
 /* =======================
@@ -34,11 +32,11 @@ function AnalysisPage({ adminId }) {
 
   async function runAnalysis() {
     if (!agentId || !fromDate || !toDate) {
-      alert('Input all parameters for system calibration.');
+      alert('INPUT REQUIRED: Parameters missing for system calibration.');
       return;
     }
     setLoading(true);
-    setResult(null); // Clear previous results
+    setResult(null);
 
     try {
       const { data, error } = await supabase
@@ -64,7 +62,7 @@ function AnalysisPage({ adminId }) {
 
         const totalOrders = totals.normal_order + totals.schedule_order + totals.assign_orderr;
         const totalCancels = totals.employee_cancel + totals.customer_cancel;
-        const efficiency = totalOrders + totalCancels === 0 ? 0 : Math.round((totalOrders / (totalOrders + totalCancels)) * 100);
+        const efficiency = (totalOrders + totalCancels === 0) ? 0 : Math.round((totalOrders / (totalOrders + totalCancels)) * 100);
 
         setResult({
           workingDays: new Set(data.map(r => r.date)).size,
@@ -72,423 +70,136 @@ function AnalysisPage({ adminId }) {
           callTime: secondsToTime(totalCallSec),
           breakTime: secondsToTime(totalBreakSec),
           efficiency: efficiency,
-          ...totals,
-          rawTotalOrders: totalOrders,
-          rawTotalCancels: totalCancels
+          ...totals
         });
-      } else {
-        alert("No operational data found for specified parameters.");
-      }
-    } catch (err) {
-      console.error("Data Retrieval Error:", err);
-      alert("System reports a data access anomaly.");
-    } finally {
-      setLoading(false);
-    }
+      } else { alert("NO_DATA_FOUND: System scan returned 0 results."); }
+    } catch (err) { alert("SYSTEM_ERROR: Data access anomaly."); } 
+    finally { setLoading(false); }
   }
 
   const downloadPDF = () => {
     const doc = new jsPDF();
-    doc.setFont("helvetica", "bold");
     doc.setFontSize(20);
-    doc.text(`Agent Performance Matrix: ${agentId}`, 14, 25);
-    doc.setFontSize(10);
-    doc.setFont("helvetica", "normal");
-    doc.setTextColor(100);
-    doc.text(`Period: ${fromDate} to ${toDate}`, 14, 35);
-    doc.text(`Generation Time: ${new Date().toLocaleString()}`, 14, 40);
-
+    doc.text(`Agent Matrix Report: ${agentId}`, 14, 25);
     const tableData = [
       ["Operational Days", result.workingDays],
       ["Total Engaged Time", result.workingHours],
-      ["Direct Call Duration", result.callTime],
-      ["Scheduled Breaks", result.breakTime],
       ["Efficiency Index", `${result.efficiency}%`],
-      ["Normal Orders (Exec.)", result.normal_order],
-      ["Scheduled Orders (Exec.)", result.schedule_order],
-      ["Assigned Orders (Exec.)", result.assign_orderr],
-      ["App Interface Interactions", result.app_intent],
-      ["Internal Abortions", result.employee_cancel],
-      ["Client Initiated Abortions", result.customer_cancel],
+      ["Executed Orders", result.normal_order + result.schedule_order],
+      ["Internal Aborts", result.employee_cancel],
+      ["Client Aborts", result.customer_cancel]
     ];
-
     doc.autoTable({
-      startY: 50,
-      head: [['METRIC KEY', 'VALUE']],
+      startY: 40,
+      head: [['METRIC', 'VALUE']],
       body: tableData,
       theme: 'grid',
-      headStyles: { fillColor: [15, 23, 42], textColor: [255, 255, 255], font: "helvetica", fontStyle: "bold" },
-      styles: { fontSize: 9, cellPadding: 3 }
+      headStyles: { fillColor: [0, 0, 0] }
     });
-    doc.save(`Agent_Matrix_${agentId}.pdf`);
+    doc.save(`Agent_${agentId}_Matrix.pdf`);
   };
 
   return (
     <div style={s.page}>
-      {/* BACKGROUND VISUALIZER */}
+      {/* INJECT ANIMATIONS */}
+      <style dangerouslySetInnerHTML={{ __html: animations }} />
+      
       <div style={s.bgGrid}>
-        {Array.from({ length: 100 }).map((_, i) => <div key={i} style={s.gridDot}></div>)}
+        {Array.from({ length: 100 }).map((_, i) => <div key={i} className="grid-dot" style={s.gridDot}></div>)}
       </div>
-      <div style={s.pulseEffect}></div>
 
-      {/* COMMAND STRIP (TOP) */}
       <div style={s.commandStrip}>
-        <span style={s.title}>AGENT_MATRIX_SYSTEM</span>
+        <div style={s.brand}>AGENT_MATRIX_SYSTEM <span style={s.version}>v4.0</span></div>
         <div style={s.inputCluster}>
-          <input style={s.input} placeholder="AGENT ID" value={agentId} onChange={e => setAgentId(e.target.value)} />
+          <input style={s.input} placeholder="ID" value={agentId} onChange={e => setAgentId(e.target.value)} />
           <input type="date" style={s.input} value={fromDate} onChange={e => setFromDate(e.target.value)} />
           <input type="date" style={s.input} value={toDate} onChange={e => setToDate(e.target.value)} />
-          <button style={s.actionButton} onClick={runAnalysis} disabled={loading}>
-            {loading ? 'CALIBRATING...' : 'RUN'}
-          </button>
-          {result && (
-            <button style={s.exportButton} onClick={downloadPDF}>
-              EXPORT
-            </button>
-          )}
+          <button style={s.runBtn} onClick={runAnalysis} disabled={loading}>{loading ? 'CALIBRATING...' : 'EXECUTE'}</button>
+          {result && <button style={s.exportBtn} onClick={downloadPDF}>EXPORT</button>}
         </div>
       </div>
 
-      {/* MAIN DATA MAP */}
-      <div style={s.dataMap}>
+      <main style={s.dataMap}>
         {result ? (
           <>
-            {/* CORE EFFICIENCY DISPLAY */}
-            <div style={{...s.coreDisplay, borderColor: result.efficiency > 75 ? '#22c55e' : result.efficiency > 50 ? '#f59e0b' : '#ef4444'}}>
+            {/* CORE CIRCLE */}
+            <div style={{...s.core, borderColor: result.efficiency > 70 ? '#22c55e' : '#ef4444'}}>
+              <div className="scan-line" style={s.scanLine}></div>
               <span style={s.coreLabel}>CORE_EFFICIENCY</span>
               <span style={s.coreValue}>{result.efficiency}%</span>
-              <span style={s.coreAgentId}>AGENT_{agentId}</span>
+              <span style={s.coreSub}>AGENT_{agentId}</span>
             </div>
 
-            {/* CAPACITY PILLAR (LEFT) */}
-            <div style={s.pillarLeft}>
-              <DataPillar label="OPERATIONAL_DAYS" value={result.workingDays} type="large" />
-              <DataPillar label="TOTAL_ENGAGED_HOURS" value={result.workingHours} type="large" />
+            {/* FLOATING PILLARS */}
+            <div style={s.leftPillar}>
+              <MetricBox label="OP_DAYS" value={result.workingDays} />
+              <MetricBox label="ENGAGED_TIME" value={result.workingHours} />
             </div>
 
-            {/* OUTPUT PILLAR (RIGHT) */}
-            <div style={s.pillarRight}>
-              <DataPillar label="NORMAL_EXECUTED" value={result.normal_order} type="small" />
-              <DataPillar label="SCHEDULED_EXECUTED" value={result.schedule_order} type="small" />
-              <DataPillar label="ASSIGNED_EXECUTED" value={result.assign_orderr} type="small" />
+            <div style={s.rightPillar}>
+              <MetricBox label="ORDERS_EXEC" value={result.normal_order + result.schedule_order} />
+              <MetricBox label="APP_INTENTS" value={result.app_intent} />
             </div>
 
-            {/* ATTENTION CONDUIT (TOP) */}
-            <div style={s.conduitTop}>
-              <DataPillar label="ACTIVE_CALLS" value={result.callTime} type="horizontal" />
-              <DataPillar label="SYSTEM_BREAKS" value={result.breakTime} type="horizontal" />
-            </div>
-
-            {/* RISK CONDUIT (BOTTOM) */}
-            <div style={s.conduitBottom}>
-              <DataPillar label="AGENT_ABORTS" value={result.employee_cancel} type="horizontal" accentColor="#ef4444" />
-              <DataPillar label="CLIENT_ABORTS" value={result.customer_cancel} type="horizontal" accentColor="#ef4444" />
-              <DataPillar label="APP_INTERACTIONS" value={result.app_intent} type="horizontal" />
+            <div style={s.bottomConduit}>
+              <MetricBox label="ABORT_AGENT" value={result.employee_cancel} isDanger />
+              <MetricBox label="ABORT_CLIENT" value={result.customer_cancel} isDanger />
             </div>
           </>
         ) : (
-          <div style={s.initialPrompt}>
-            <div style={s.scanEffect}></div>
-            <p>INPUT PARAMETERS FOR SYSTEM INITIALIZATION</p>
+          <div style={s.idleState}>
+            <div className="pulse-orb" style={s.orb}></div>
+            <p>AWAITING_INITIALIZATION</p>
           </div>
         )}
-      </div>
+      </main>
     </div>
   );
 }
 
-/* =======================
-   SUB-COMPONENTS
-======================= */
-const DataPillar = ({ label, value, type, accentColor = '#38bdf8' }) => {
-  if (type === 'large') {
-    return (
-      <div style={s.pillarLarge}>
-        <span style={s.pillarLabel}>{label}</span>
-        <span style={{ ...s.pillarValueLarge, color: accentColor }}>{value}</span>
-      </div>
-    );
-  } else if (type === 'small') {
-    return (
-      <div style={s.pillarSmall}>
-        <span style={s.pillarLabel}>{label}</span>
-        <span style={{ ...s.pillarValueSmall, color: accentColor }}>{value}</span>
-      </div>
-    );
-  } else if (type === 'horizontal') {
-    return (
-      <div style={s.pillarHorizontal}>
-        <span style={s.pillarLabelHorizontal}>{label}</span>
-        <span style={{ ...s.pillarValueHorizontal, color: accentColor }}>{value}</span>
-      </div>
-    );
-  }
-  return null;
-};
+const MetricBox = ({ label, value, isDanger }) => (
+  <div style={s.metricBox}>
+    <span style={s.metricLabel}>{label}</span>
+    <span style={{...s.metricValue, color: isDanger ? '#ef4444' : '#38bdf8'}}>{value}</span>
+  </div>
+);
 
 /* =======================
-   STYLES (Deconstructed Map)
+   STYLES & ANIMATIONS
 ======================= */
+const animations = `
+  @keyframes scan { 0% { top: 0% } 100% { top: 100% } }
+  @keyframes orb-pulse { 0% { transform: scale(1); opacity: 0.3 } 100% { transform: scale(1.5); opacity: 0 } }
+  .scan-line { position: absolute; width: 100%; height: 2px; background: rgba(56, 189, 248, 0.5); animation: scan 3s infinite linear; }
+  .pulse-orb { animation: orb-pulse 2s infinite ease-out; }
+  .grid-dot { transition: all 0.5s; }
+  .grid-dot:hover { background: rgba(56, 189, 248, 0.2); }
+`;
+
 const s = {
-  page: {
-    height: '100vh',
-    width: '100vw',
-    backgroundColor: '#0a0e17',
-    color: '#f8fafc',
-    fontFamily: '"Space Mono", monospace',
-    overflow: 'hidden',
-    position: 'relative',
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    justifyContent: 'center'
-  },
-  bgGrid: {
-    position: 'absolute',
-    top: 0, left: 0, right: 0, bottom: 0,
-    display: 'grid',
-    gridTemplateColumns: 'repeat(10, 1fr)',
-    gridTemplateRows: 'repeat(10, 1fr)',
-    opacity: 0.05,
-    zIndex: 0
-  },
-  gridDot: {
-    border: '1px dotted #334155',
-    animation: 'gridPulse 5s infinite alternate ease-in-out'
-  },
-  pulseEffect: {
-    position: 'absolute',
-    width: '50vw', height: '50vw',
-    borderRadius: '50%',
-    background: 'radial-gradient(circle, rgba(56,189,248,0.05) 0%, rgba(0,0,0,0) 70%)',
-    animation: 'pulseScale 10s infinite ease-in-out',
-    zIndex: 1,
-  },
-  commandStrip: {
-    position: 'absolute',
-    top: 0, left: 0, right: 0,
-    backgroundColor: 'rgba(15, 23, 42, 0.8)',
-    backdropFilter: 'blur(10px)',
-    borderBottom: '1px solid #334155',
-    padding: '15px 40px',
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    zIndex: 10
-  },
-  title: {
-    fontSize: '0.9rem',
-    fontWeight: 'bold',
-    letterSpacing: '2px',
-    color: '#38bdf8'
-  },
-  inputCluster: {
-    display: 'flex',
-    gap: '10px',
-    alignItems: 'center'
-  },
-  input: {
-    background: 'rgba(0,0,0,0.3)',
-    border: '1px solid #334155',
-    padding: '8px 12px',
-    color: '#f8fafc',
-    fontSize: '0.8rem',
-    outline: 'none',
-    width: '120px'
-  },
-  actionButton: {
-    backgroundColor: '#38bdf8',
-    color: '#0a0e17',
-    border: 'none',
-    padding: '8px 20px',
-    fontWeight: 'bold',
-    fontSize: '0.8rem',
-    cursor: 'pointer'
-  },
-  exportButton: {
-    backgroundColor: 'transparent',
-    border: '1px solid #94a3b8',
-    color: '#94a3b8',
-    padding: '8px 15px',
-    fontSize: '0.8rem',
-    cursor: 'pointer'
-  },
-  dataMap: {
-    position: 'relative',
-    width: '90%',
-    height: '70%',
-    display: 'flex',
-    justifyContent: 'center',
-    alignItems: 'center',
-    zIndex: 5
-  },
-  coreDisplay: {
-    position: 'absolute',
-    width: '200px',
-    height: '200px',
-    borderRadius: '50%',
-    border: '3px solid',
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    justifyContent: 'center',
-    boxShadow: '0 0 30px rgba(56,189,248,0.2), inset 0 0 10px rgba(56,189,248,0.2)',
-    transition: 'border-color 0.5s ease-in-out'
-  },
-  coreLabel: {
-    fontSize: '0.7rem',
-    color: '#94a3b8',
-    letterSpacing: '1px'
-  },
-  coreValue: {
-    fontSize: '3rem',
-    fontWeight: 'bold',
-    color: '#f8fafc'
-  },
-  coreAgentId: {
-    fontSize: '0.8rem',
-    color: '#38bdf8',
-    letterSpacing: '1px',
-    marginTop: '5px'
-  },
-  pillarLeft: {
-    position: 'absolute',
-    left: '10%',
-    top: '50%',
-    transform: 'translateY(-50%)',
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '20px'
-  },
-  pillarRight: {
-    position: 'absolute',
-    right: '10%',
-    top: '50%',
-    transform: 'translateY(-50%)',
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '20px'
-  },
-  conduitTop: {
-    position: 'absolute',
-    top: '10%',
-    left: '50%',
-    transform: 'translateX(-50%)',
-    display: 'flex',
-    gap: '30px'
-  },
-  conduitBottom: {
-    position: 'absolute',
-    bottom: '10%',
-    left: '50%',
-    transform: 'translateX(-50%)',
-    display: 'flex',
-    gap: '30px'
-  },
-  pillarLarge: {
-    width: '180px',
-    backgroundColor: 'rgba(15, 23, 42, 0.7)',
-    backdropFilter: 'blur(5px)',
-    border: '1px solid #334155',
-    padding: '20px',
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    gap: '10px'
-  },
-  pillarSmall: {
-    width: '150px',
-    backgroundColor: 'rgba(15, 23, 42, 0.7)',
-    backdropFilter: 'blur(5px)',
-    border: '1px solid #334155',
-    padding: '15px',
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    gap: '8px'
-  },
-  pillarHorizontal: {
-    width: '180px',
-    backgroundColor: 'rgba(15, 23, 42, 0.7)',
-    backdropFilter: 'blur(5px)',
-    border: '1px solid #334155',
-    padding: '12px 20px',
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center'
-  },
-  pillarLabel: {
-    fontSize: '0.65rem',
-    color: '#94a3b8',
-    letterSpacing: '1px',
-    textTransform: 'uppercase'
-  },
-  pillarValueLarge: {
-    fontSize: '2rem',
-    fontWeight: 'bold',
-    color: '#38bdf8'
-  },
-  pillarValueSmall: {
-    fontSize: '1.5rem',
-    fontWeight: 'bold',
-    color: '#38bdf8'
-  },
-  pillarLabelHorizontal: {
-    fontSize: '0.6rem',
-    color: '#94a3b8',
-    letterSpacing: '1px',
-    textTransform: 'uppercase'
-  },
-  pillarValueHorizontal: {
-    fontSize: '1rem',
-    fontWeight: 'bold',
-    color: '#f8fafc'
-  },
-  initialPrompt: {
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    justifyContent: 'center',
-    color: '#94a3b8',
-    fontSize: '1rem',
-    letterSpacing: '2px',
-    position: 'relative'
-  },
-  scanEffect: {
-    width: '100px',
-    height: '100px',
-    border: '2px solid #38bdf8',
-    borderRadius: '50%',
-    marginBottom: '20px',
-    position: 'relative',
-    overflow: 'hidden',
-    '&::before': {
-      content: '""',
-      position: 'absolute',
-      top: 0,
-      left: 0,
-      width: '100%',
-      height: '10px',
-      background: 'linear-gradient(to right, transparent, #38bdf8, transparent)',
-      animation: 'scanline 2s infinite linear'
-    }
-  },
-  // Keyframe animations (add these to a global CSS file or within a style tag if using Emotion/Styled-components)
-  // Example for standard CSS:
-  // @keyframes gridPulse {
-  //   0% { border-color: #334155; }
-  //   50% { border-color: rgba(56, 189, 248, 0.5); }
-  //   100% { border-color: #334155; }
-  // }
-  // @keyframes pulseScale {
-  //   0% { transform: scale(0.8) rotate(0deg); opacity: 0.05; }
-  //   50% { transform: scale(1.2) rotate(180deg); opacity: 0.15; }
-  //   100% { transform: scale(0.8) rotate(360deg); opacity: 0.05; }
-  // }
-  // @keyframes scanline {
-  //   0% { top: 0; }
-  //   100% { top: 100%; }
-  // }
+  page: { height: '100vh', backgroundColor: '#0a0e17', color: '#f8fafc', fontFamily: 'monospace', overflow: 'hidden', position: 'relative' },
+  bgGrid: { position: 'absolute', top: 0, width: '100%', height: '100%', display: 'grid', gridTemplateColumns: 'repeat(10, 1fr)', opacity: 0.1 },
+  gridDot: { border: '0.5px solid #334155' },
+  commandStrip: { display: 'flex', justifyContent: 'space-between', padding: '20px 40px', background: 'rgba(15, 23, 42, 0.9)', borderBottom: '1px solid #334155', zIndex: 10, position: 'relative' },
+  brand: { fontSize: '0.8rem', letterSpacing: '2px', fontWeight: 'bold', color: '#38bdf8' },
+  version: { fontSize: '0.6rem', color: '#64748b' },
+  inputCluster: { display: 'flex', gap: '10px' },
+  input: { background: '#000', border: '1px solid #334155', color: '#fff', padding: '5px 10px', fontSize: '0.7rem', outline: 'none' },
+  runBtn: { background: '#38bdf8', border: 'none', color: '#000', fontWeight: 'bold', padding: '5px 15px', cursor: 'pointer', fontSize: '0.7rem' },
+  exportBtn: { background: 'transparent', border: '1px solid #334155', color: '#94a3b8', padding: '5px 15px', fontSize: '0.7rem', cursor: 'pointer' },
+  dataMap: { height: 'calc(100vh - 70px)', display: 'flex', justifyContent: 'center', alignItems: 'center', position: 'relative' },
+  core: { width: '220px', height: '220px', borderRadius: '50%', border: '2px solid', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', position: 'relative', overflow: 'hidden', background: 'radial-gradient(circle, rgba(56,189,248,0.1) 0%, transparent 70%)' },
+  coreLabel: { fontSize: '0.6rem', color: '#94a3b8' },
+  coreValue: { fontSize: '3.5rem', fontWeight: 'bold' },
+  coreSub: { fontSize: '0.7rem', color: '#38bdf8' },
+  leftPillar: { position: 'absolute', left: '15%', display: 'flex', flexDirection: 'column', gap: '40px' },
+  rightPillar: { position: 'absolute', right: '15%', display: 'flex', flexDirection: 'column', gap: '40px' },
+  bottomConduit: { position: 'absolute', bottom: '15%', display: 'flex', gap: '60px' },
+  metricBox: { textAlign: 'center' },
+  metricLabel: { fontSize: '0.6rem', color: '#64748b', display: 'block', marginBottom: '5px' },
+  metricValue: { fontSize: '1.5rem', fontWeight: 'bold' },
+  idleState: { textAlign: 'center', color: '#334155' },
+  orb: { width: '40px', height: '40px', border: '1px solid #38bdf8', borderRadius: '50%', margin: '0 auto 20px' }
 };
 
 export default AnalysisPage;
