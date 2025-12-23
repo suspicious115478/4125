@@ -1,12 +1,9 @@
 import { useState } from 'react';
 import { supabase } from '../lib/supabase';
-import jsPDF from 'jspdf';
-import 'jspdf-autotable';
 
 /* =======================
-   THE ROOTS (CORE LOGIC)
+   REFINED LOGIC 
 ======================= */
-const minutesToSeconds = (v) => (Number(v) || 0) * 60;
 const secondsToTime = (s) => {
   const h = Math.floor(s / 3600);
   const m = Math.floor((s % 3600) / 60);
@@ -32,30 +29,29 @@ function AnalysisPage({ adminId }) {
   async function runAnalysis() {
     if (!agentId || !fromDate || !toDate) return;
     setLoading(true);
-    const { data } = await supabase
-      .from('agent_details')
-      .select('*')
-      .eq('admin_id', adminId)
-      .eq('agent_id', agentId)
-      .gte('date', fromDate)
-      .lte('date', toDate);
+    const { data } = await supabase.from('agent_details').select('*')
+      .eq('admin_id', adminId).eq('agent_id', agentId)
+      .gte('date', fromDate).lte('date', toDate);
 
     if (data) {
-      let wSec = 0, cSec = 0, bSec = 0;
-      let totals = { normal_order: 0, schedule_order: 0, assign_orderr: 0, app_intent: 0, employee_cancel: 0, customer_cancel: 0 };
+      let wSec = 0, cSec = 0;
+      let totals = { normal: 0, cancel: 0, app: 0 };
 
       data.forEach(row => {
         wSec += workingSeconds(row.login_time, row.logout_time);
-        cSec += minutesToSeconds(row.call_time);
-        bSec += minutesToSeconds(row.break_time);
-        Object.keys(totals).forEach(key => totals[key] += (row[key] || 0));
+        cSec += (Number(row.call_time) || 0) * 60;
+        totals.normal += (row.normal_order || 0) + (row.schedule_order || 0);
+        totals.cancel += (row.employee_cancel || 0) + (row.customer_cancel || 0);
+        totals.app += (row.app_intent || 0);
       });
 
+      const yieldScore = totals.normal + totals.cancel === 0 ? 0 : 
+        Math.round((totals.normal / (totals.normal + totals.cancel)) * 100);
+
       setResult({
-        workingDays: new Set(data.map(r => r.date)).size,
-        workingHours: secondsToTime(wSec),
-        callTime: secondsToTime(cSec),
-        breakTime: secondsToTime(bSec),
+        hours: secondsToTime(wSec),
+        calls: secondsToTime(cSec),
+        yield: yieldScore,
         ...totals
       });
     }
@@ -63,107 +59,78 @@ function AnalysisPage({ adminId }) {
   }
 
   return (
-    <div style={s.canvas}>
-      {/* PERSISTENT HEADER */}
-      <header style={s.header}>
-        <div style={s.brand}>
-          <div style={s.accentSquare}></div>
-          <span>PRISM ANALYTICS</span>
+    <div style={s.page}>
+      {/* MINIMAL NAV */}
+      <nav style={s.nav}>
+        <div style={s.inputCluster}>
+          <input style={s.ghostInput} placeholder="AGENT_ID" value={agentId} onChange={e => setAgentId(e.target.value)} />
+          <input type="date" style={s.ghostInput} value={fromDate} onChange={e => setFromDate(e.target.value)} />
+          <input type="date" style={s.ghostInput} value={toDate} onChange={e => setToDate(e.target.value)} />
+          <button style={s.primeBtn} onClick={runAnalysis}>{loading ? '...' : 'ANALYSIS'}</button>
         </div>
-        <div style={s.controls}>
-          <input style={s.minimalInput} placeholder="Agent ID" value={agentId} onChange={e => setAgentId(e.target.value)} />
-          <input type="date" style={s.minimalInput} value={fromDate} onChange={e => setFromDate(e.target.value)} />
-          <input type="date" style={s.minimalInput} value={toDate} onChange={e => setToDate(e.target.value)} />
-          <button style={s.actionBtn} onClick={runAnalysis}>{loading ? '...' : 'ANALYSIS'}</button>
-        </div>
-      </header>
+      </nav>
 
-      {/* HORIZONTAL DATA STRIP */}
-      <main style={s.stripContainer}>
+      {/* HORIZONTAL DATA HUD */}
+      <div style={s.hud}>
         {result ? (
-          <div style={s.horizontalScroll}>
-            <Section title="Capacity">
-              <BigStat label="Work Days" value={result.workingDays} unit="days" />
-              <BigStat label="Total Hours" value={result.workingHours} />
-            </Section>
+          <div style={s.strip}>
+            <div style={s.unit}>
+              <span style={s.tag}>CORE_YIELD</span>
+              <div style={s.gaugeContainer}>
+                <div style={{...s.gaugeFill, width: `${result.yield}%`, backgroundColor: result.yield > 70 ? '#22c55e' : '#ef4444'}}></div>
+              </div>
+              <span style={s.megaVal}>{result.yield}%</span>
+            </div>
 
-            <div style={s.divider}></div>
+            <div style={s.vLine} />
 
-            <Section title="Output">
-              <RowStat label="Normal Orders" value={result.normal_order} />
-              <RowStat label="Scheduled" value={result.schedule_order} />
-              <RowStat label="Assigned" value={result.assign_orderr} />
-            </Section>
+            <div style={s.unit}>
+              <span style={s.tag}>TIME_LOGS</span>
+              <div style={s.statRow}>
+                <div style={s.subStat}><span>Active</span><strong>{result.hours}</strong></div>
+                <div style={s.subStat}><span>Talk</span><strong>{result.calls}</strong></div>
+              </div>
+            </div>
 
-            <div style={s.divider}></div>
+            <div style={s.vLine} />
 
-            <Section title="Attention">
-              <BigStat label="In-Call" value={result.callTime} />
-              <BigStat label="On-Break" value={result.breakTime} />
-            </Section>
-
-            <div style={s.divider}></div>
-
-            <Section title="Risk">
-              <RowStat label="Staff Cancels" value={result.employee_cancel} color="#ef4444" />
-              <RowStat label="User Cancels" value={result.customer_cancel} color="#ef4444" />
-              <RowStat label="App Intents" value={result.app_intent} />
-            </Section>
+            <div style={s.unit}>
+              <span style={s.tag}>OUTPUT_METRICS</span>
+              <div style={s.statRow}>
+                <div style={s.subStat}><span>Orders</span><strong>{result.normal}</strong></div>
+                <div style={s.subStat}><span>Cancels</span><strong style={{color: '#ef4444'}}>{result.cancel}</strong></div>
+                <div style={s.subStat}><span>Intents</span><strong>{result.app}</strong></div>
+              </div>
+            </div>
           </div>
         ) : (
-          <div style={s.empty}>Enter parameters to generate data timeline.</div>
+          <div style={s.idle}>SYSTEM_IDLE // AWAITING_INPUT</div>
         )}
-      </main>
+      </div>
     </div>
   );
 }
 
-const Section = ({ title, children }) => (
-  <div style={s.section}>
-    <h3 style={s.sectionTitle}>{title}</h3>
-    <div style={s.sectionContent}>{children}</div>
-  </div>
-);
-
-const BigStat = ({ label, value, unit = "" }) => (
-  <div style={s.bigStat}>
-    <span style={s.statLabel}>{label}</span>
-    <span style={s.statValue}>{value}<small style={s.unit}>{unit}</small></span>
-  </div>
-);
-
-const RowStat = ({ label, value, color = "#000" }) => (
-  <div style={s.rowStat}>
-    <span style={s.rowLabel}>{label}</span>
-    <span style={{...s.rowValue, color}}>{value}</span>
-  </div>
-);
-
 /* =======================
-   STYLES (HORIZONTAL CLEAN)
+   STYLES (ULTRA-CLEAN)
 ======================= */
 const s = {
-  canvas: { height: '100vh', backgroundColor: '#fff', color: '#000', fontFamily: 'Inter, system-ui, sans-serif', overflow: 'hidden', display: 'flex', flexDirection: 'column' },
-  header: { padding: '32px 60px', borderBottom: '1px solid #eee', display: 'flex', justifyContent: 'space-between', alignItems: 'center' },
-  brand: { display: 'flex', alignItems: 'center', gap: '12px', fontWeight: '800', fontSize: '13px', letterSpacing: '1px' },
-  accentSquare: { width: '12px', height: '12px', backgroundColor: '#000' },
-  controls: { display: 'flex', gap: '12px' },
-  minimalInput: { padding: '8px 0', border: 'none', borderBottom: '1px solid #ddd', outline: 'none', fontSize: '13px', width: '120px' },
-  actionBtn: { padding: '8px 24px', backgroundColor: '#000', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: '600' },
-  stripContainer: { flex: 1, overflowX: 'auto', display: 'flex', alignItems: 'center', padding: '0 60px' },
-  horizontalScroll: { display: 'flex', alignItems: 'flex-start', gap: '80px' },
-  section: { minWidth: '280px' },
-  sectionTitle: { fontSize: '11px', textTransform: 'uppercase', color: '#999', letterSpacing: '2px', marginBottom: '32px' },
-  sectionContent: { display: 'flex', flexDirection: 'column', gap: '32px' },
-  bigStat: { display: 'flex', flexDirection: 'column' },
-  statLabel: { fontSize: '13px', color: '#666', marginBottom: '4px' },
-  statValue: { fontSize: '48px', fontWeight: '300', letterSpacing: '-2px' },
-  unit: { fontSize: '14px', marginLeft: '4px', letterSpacing: '0', color: '#999' },
-  rowStat: { display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #f5f5f5', paddingBottom: '8px' },
-  rowLabel: { fontSize: '13px', color: '#666' },
-  rowValue: { fontSize: '15px', fontWeight: '700' },
-  divider: { width: '1px', height: '240px', backgroundColor: '#eee' },
-  empty: { color: '#ccc', fontSize: '18px', letterSpacing: '-0.5px' }
+  page: { height: '100vh', backgroundColor: '#fafafa', display: 'flex', flexDirection: 'column', fontFamily: 'monospace' },
+  nav: { padding: '40px 60px', borderBottom: '1px solid #eaeaea', backgroundColor: '#fff' },
+  inputCluster: { display: 'flex', gap: '20px' },
+  ghostInput: { border: 'none', borderBottom: '1px solid #ddd', padding: '8px 0', fontSize: '12px', outline: 'none', width: '120px', background: 'transparent' },
+  primeBtn: { background: '#000', color: '#fff', border: 'none', padding: '8px 20px', fontSize: '11px', fontWeight: 'bold', cursor: 'pointer' },
+  hud: { flex: 1, display: 'flex', alignItems: 'center', padding: '0 60px' },
+  strip: { display: 'flex', gap: '60px', alignItems: 'center' },
+  unit: { display: 'flex', flexDirection: 'column', gap: '15px' },
+  tag: { fontSize: '10px', color: '#999', letterSpacing: '2px' },
+  megaVal: { fontSize: '64px', fontWeight: '900', letterSpacing: '-4px' },
+  gaugeContainer: { width: '150px', height: '4px', background: '#eee', borderRadius: '2px', overflow: 'hidden' },
+  gaugeFill: { height: '100%', transition: 'width 1s ease-in-out' },
+  statRow: { display: 'flex', gap: '40px' },
+  subStat: { display: 'flex', flexDirection: 'column', gap: '5px' },
+  vLine: { width: '1px', height: '80px', background: '#eee' },
+  idle: { color: '#ccc', fontSize: '12px', letterSpacing: '4px' }
 };
 
 export default AnalysisPage;
