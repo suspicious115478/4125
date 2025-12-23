@@ -1,33 +1,24 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 
 /* =======================
-   UTILITIES (Safety First)
+   STYLING ENGINE (The "Unique" Look)
 ======================= */
-const minutesToSeconds = (v) => (Number(v) || 0) * 60;
-
-const secondsToTime = (s) => {
-  if (!s || isNaN(s)) return "0h 0m 0s";
-  const h = Math.floor(s / 3600);
-  const m = Math.floor((s % 3600) / 60);
-  const sec = s % 60;
-  return `${h}h ${m}m ${sec}s`;
-};
-
-const workingSeconds = (login, logout) => {
-  if (!login || !logout || typeof login !== 'string') return 0;
-  const toSec = (t) => t.split(':').reduce((acc, val) => acc * 60 + +val, 0);
-  try {
-    return toSec(logout) - toSec(login);
-  } catch (e) {
-    return 0;
-  }
+const theme = {
+  bg: '#0a0e17',
+  surface: 'rgba(30, 41, 59, 0.7)',
+  accent: '#38bdf8',
+  success: '#22c55e',
+  warning: '#f59e0b',
+  danger: '#ef4444',
+  text: '#f8fafc',
+  textMuted: '#94a3b8'
 };
 
 /* =======================
-   MAIN COMPONENT
+   COMPONENT
 ======================= */
 function AnalysisPage({ adminId }) {
   const [agentId, setAgentId] = useState('');
@@ -36,137 +27,112 @@ function AnalysisPage({ adminId }) {
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
 
+  // Helper for Order vs Cancel Ratio
+  const getEfficiency = () => {
+    if (!result) return 0;
+    const totalOrders = result.normal_order + result.schedule_order + result.assign_orderr;
+    const totalCancels = result.employee_cancel + result.customer_cancel;
+    if (totalOrders === 0) return 0;
+    return Math.round((totalOrders / (totalOrders + totalCancels)) * 100);
+  };
+
   async function runAnalysis() {
-    if (!agentId || !fromDate || !toDate) {
-      alert('Please fill in all search parameters.');
-      return;
-    }
+    if (!agentId || !fromDate || !toDate) return;
     setLoading(true);
-    
-    try {
-      const { data, error } = await supabase
-        .from('agent_details')
-        .select('*')
-        .eq('admin_id', adminId)
-        .eq('agent_id', agentId)
-        .gte('date', fromDate)
-        .lte('date', toDate);
+    const { data } = await supabase
+      .from('agent_details')
+      .select('*')
+      .eq('admin_id', adminId)
+      .eq('agent_id', agentId)
+      .gte('date', fromDate)
+      .lte('date', toDate);
 
-      if (error) throw error;
+    if (data) {
+      const stats = data.reduce((acc, row) => {
+        acc.wSec += (row.logout_time && row.login_time) ? 
+          (row.logout_time.split(':').reduce((a,v)=>a*60+ +v,0) - row.login_time.split(':').reduce((a,v)=>a*60+ +v,0)) : 0;
+        acc.nOrd += (row.normal_order || 0);
+        acc.sOrd += (row.schedule_order || 0);
+        acc.aOrd += (row.assign_orderr || 0);
+        acc.eCan += (row.employee_cancel || 0);
+        acc.cCan += (row.customer_cancel || 0);
+        return acc;
+      }, { wSec: 0, nOrd: 0, sOrd: 0, aOrd: 0, eCan: 0, cCan: 0 });
 
-      if (data && data.length > 0) {
-        const uniqueDays = new Set(data.map(r => r.date)).size;
-        let wSec = 0, cSec = 0, bSec = 0;
-        let totals = { normal_order: 0, schedule_order: 0, assign_orderr: 0, app_intent: 0, employee_cancel: 0, customer_cancel: 0 };
-
-        data.forEach(r => {
-          wSec += workingSeconds(r.login_time, r.logout_time);
-          cSec += minutesToSeconds(r.call_time);
-          bSec += minutesToSeconds(r.break_time);
-          Object.keys(totals).forEach(key => {
-            totals[key] += (Number(r[key]) || 0);
-          });
-        });
-
-        setResult({
-          workingDays: uniqueDays,
-          workingHours: secondsToTime(wSec),
-          callTime: secondsToTime(cSec),
-          breakTime: secondsToTime(bSec),
-          ...totals
-        });
-      } else {
-        setResult(null);
-        alert("No data found for this agent in the selected range.");
-      }
-    } catch (err) {
-      console.error("Analysis Error:", err);
-      alert("Failed to fetch data. Check console.");
-    } finally {
-      setLoading(false);
+      setResult({
+        workingHours: Math.floor(stats.wSec / 3600) + 'h',
+        normal_order: stats.nOrd,
+        schedule_order: stats.sOrd,
+        assign_orderr: stats.aOrd,
+        employee_cancel: stats.eCan,
+        customer_cancel: stats.cCan,
+        totalDays: new Set(data.map(d => d.date)).size
+      });
     }
+    setLoading(false);
   }
 
   return (
-    <div style={styles.page}>
-      {/* SIDEBAR */}
-      <aside style={styles.sidebar}>
-        <div style={styles.brand}>
-          <div style={styles.logoBox}>Σ</div>
-          <h2 style={{ margin: 0, fontSize: '1.2rem', letterSpacing: '-0.5px' }}>INSIGHTS</h2>
+    <div style={styles.appContainer}>
+      {/* GLOWING BACKGROUND DECOR */}
+      <div style={styles.blob1}></div>
+      <div style={styles.blob2}></div>
+
+      {/* TACTICAL SIDEBAR */}
+      <aside style={styles.glassSidebar}>
+        <div style={styles.logoContainer}>
+          <div style={styles.hexLogo}>⬢</div>
+          <h1 style={styles.brandTitle}>CORE<span>AI</span></h1>
         </div>
 
-        <div style={styles.inputStack}>
-          <InputGroup 
-            label="Agent Identity" 
-            value={agentId} 
-            onChange={(val) => setAgentId(val)} 
-            placeholder="e.g. AGT-99" 
-          />
-          <InputGroup 
-            label="Start Date" 
-            type="date" 
-            value={fromDate} 
-            onChange={(val) => setFromDate(val)} 
-          />
-          <InputGroup 
-            label="End Date" 
-            type="date" 
-            value={toDate} 
-            onChange={(val) => setToDate(val)} 
-          />
+        <nav style={styles.navStack}>
+          <ControlInput label="AGENT_KEY" value={agentId} onChange={setAgentId} placeholder="001" />
+          <ControlInput label="START_UTC" type="date" value={fromDate} onChange={setFromDate} />
+          <ControlInput label="END_UTC" type="date" value={toDate} onChange={setToDate} />
           
-          <button 
-            style={loading ? {...styles.primaryBtn, opacity: 0.6} : styles.primaryBtn} 
-            onClick={runAnalysis}
-            disabled={loading}
-          >
-            {loading ? 'Analyzing...' : 'Generate Report'}
+          <button style={styles.executeBtn} onClick={runAnalysis}>
+            {loading ? 'CALCULATING...' : 'EXECUTE RUN'}
           </button>
-        </div>
+        </nav>
       </aside>
 
-      {/* MAIN CONTENT */}
-      <main style={styles.main}>
-        <header style={styles.header}>
-          <div>
-            <h1 style={{ margin: 0, fontSize: '1.8rem', fontWeight: '800' }}>Performance Dashboard</h1>
-            <p style={{ color: '#64748b', marginTop: '4px' }}>
-              Monitoring Agent: <span style={{ color: '#3b82f6', fontWeight: '600' }}>{agentId || 'Unspecified'}</span>
-            </p>
-          </div>
-          {result && (
-            <button style={styles.downloadBtn} onClick={() => downloadPDF(result, agentId, fromDate, toDate)}>
-              <span style={{ marginRight: '8px' }}>↓</span> Export PDF
-            </button>
-          )}
-        </header>
+      {/* MAIN COMMAND DECK */}
+      <main style={styles.deck}>
+        {result ? (
+          <div style={styles.deckContent}>
+            <header style={styles.deckHeader}>
+              <div>
+                <h2 style={styles.glitchText}>AGENT_{agentId}</h2>
+                <p style={{ color: theme.accent, fontSize: '0.8rem' }}>MISSION_ANALYSIS // {fromDate} TO {toDate}</p>
+              </div>
+              <div style={styles.efficiencyCircle}>
+                <span style={{ fontSize: '0.7rem', display: 'block' }}>EFFICIENCY</span>
+                {getEfficiency()}%
+              </div>
+            </header>
 
-        {loading ? (
-          <div style={styles.loaderContainer}>
-             <div style={styles.pulse}></div>
-             <p style={{ color: '#94a3b8', fontWeight: '500' }}>Aggregating database records...</p>
-          </div>
-        ) : result ? (
-          <div style={styles.grid}>
-            <StatCard label="Total Active Days" value={result.workingDays} icon="📅" color="#3b82f6" />
-            <StatCard label="Clocked Hours" value={result.workingHours} icon="🕒" color="#8b5cf6" />
-            <StatCard label="Talk Time" value={result.callTime} icon="📞" color="#10b981" />
-            <StatCard label="Break Duration" value={result.breakTime} icon="☕" color="#f59e0b" />
-            <StatCard label="Normal Orders" value={result.normal_order} icon="📦" color="#10b981" />
-            <StatCard label="Scheduled" value={result.schedule_order} icon="⏳" color="#ec4899" />
-            <StatCard label="Assignments" value={result.assign_orderr} icon="📌" color="#6366f1" />
-            <StatCard label="App Activity" value={result.app_intent} icon="📱" color="#f43f5e" />
-            <StatCard label="Staff Cancels" value={result.employee_cancel} icon="🚫" color="#64748b" />
-            <StatCard label="Client Cancels" value={result.customer_cancel} icon="⚠️" color="#ef4444" />
+            <div style={styles.grid}>
+              <KpiCard label="ACTIVE_TIME" value={result.workingHours} color={theme.accent} />
+              <KpiCard label="TOTAL_SESSIONS" value={result.totalDays} color={theme.text} />
+              <KpiCard label="SUCCESS_OPS" value={result.normal_order} color={theme.success} />
+              <KpiCard label="ABORTED_USER" value={result.customer_cancel} color={theme.danger} />
+            </div>
+
+            {/* PERFORMANCE BAR */}
+            <div style={styles.meterContainer}>
+              <div style={styles.meterLabel}>
+                <span>RELIABILITY_INDEX</span>
+                <span>{getEfficiency()}% / 100%</span>
+              </div>
+              <div style={styles.meterTrack}>
+                <div style={{...styles.meterFill, width: `${getEfficiency()}%`}}></div>
+              </div>
+            </div>
           </div>
         ) : (
           <div style={styles.emptyState}>
-            <div style={{ fontSize: '4rem', marginBottom: '20px' }}>🔍</div>
-            <h3 style={{ color: '#1e293b' }}>Ready for Analysis</h3>
-            <p style={{ maxWidth: '400px', margin: '0 auto', color: '#94a3b8' }}>
-              Select an agent and time period from the sidebar to visualize performance metrics.
-            </p>
+            <div style={styles.radar}></div>
+            <p>AWAITING DATA INPUT...</p>
           </div>
         )}
       </main>
@@ -175,218 +141,124 @@ function AnalysisPage({ adminId }) {
 }
 
 /* =======================
-   REUSABLE SUB-COMPONENTS
+   SUB-COMPONENTS
 ======================= */
-const InputGroup = ({ label, type = "text", value, onChange, placeholder }) => (
-  <div style={styles.inputGroup}>
-    <label style={styles.label}>{label}</label>
+const ControlInput = ({ label, value, onChange, type="text", placeholder }) => (
+  <div style={styles.inputWrapper}>
+    <label style={styles.inputLabel}>{label}</label>
     <input 
-        type={type} 
-        style={styles.input} 
-        value={value}
-        placeholder={placeholder}
-        // CRITICAL FIX: Ensure we only pass the value string, not the event object
-        onChange={(e) => onChange(e.target.value)} 
+      type={type} 
+      style={styles.terminalInput} 
+      value={value} 
+      onChange={e => onChange(e.target.value)} 
+      placeholder={placeholder}
     />
   </div>
 );
 
-const StatCard = ({ label, value, icon, color }) => (
-  <div style={{ ...styles.card, borderTop: `4px solid ${color}` }}>
-    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
-        <span style={styles.cardLabel}>{label}</span>
-        <span style={{ fontSize: '1.2rem', filter: 'grayscale(0.5)' }}>{icon}</span>
-    </div>
-    <div style={styles.cardValue}>{value}</div>
+const KpiCard = ({ label, value, color }) => (
+  <div style={styles.kpiCard}>
+    <span style={styles.kpiLabel}>{label}</span>
+    <span style={{...styles.kpiValue, color}}>{value}</span>
+    <div style={{...styles.kpiGlow, backgroundColor: color}}></div>
   </div>
 );
 
 /* =======================
-   STYLES
+   FUTURISTIC STYLES
 ======================= */
 const styles = {
-  page: {
+  appContainer: {
     display: 'flex',
     minHeight: '100vh',
-    backgroundColor: '#f1f5f9',
-    color: '#1e293b',
-    fontFamily: 'Inter, system-ui, sans-serif',
+    backgroundColor: theme.bg,
+    color: theme.text,
+    fontFamily: '"Share Tech Mono", monospace',
+    overflow: 'hidden',
+    position: 'relative'
   },
-  sidebar: {
-    width: '280px',
-    backgroundColor: '#0f172a',
-    color: 'white',
-    padding: '32px 24px',
+  blob1: {
+    position: 'absolute', top: '-10%', left: '20%', width: '400px', height: '400px',
+    background: 'radial-gradient(circle, rgba(56,189,248,0.1) 0%, rgba(0,0,0,0) 70%)',
+    zIndex: 0
+  },
+  blob2: {
+    position: 'absolute', bottom: '0', right: '0', width: '500px', height: '500px',
+    background: 'radial-gradient(circle, rgba(139,92,246,0.1) 0%, rgba(0,0,0,0) 70%)',
+    zIndex: 0
+  },
+  glassSidebar: {
+    width: '320px',
+    background: 'rgba(15, 23, 42, 0.8)',
+    backdropFilter: 'blur(20px)',
+    borderRight: '1px solid rgba(255,255,255,0.1)',
+    padding: '40px 30px',
+    zIndex: 5,
     display: 'flex',
-    flexDirection: 'column',
-    position: 'fixed',
-    height: '100vh',
-    boxShadow: '4px 0 24px rgba(0,0,0,0.1)',
-    zIndex: 10,
+    flexDirection: 'column'
   },
-  brand: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '12px',
-    marginBottom: '48px',
-  },
-  logoBox: {
-    width: '32px',
-    height: '32px',
-    backgroundColor: '#3b82f6',
-    borderRadius: '6px',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    fontWeight: '900',
-    fontSize: '1.2rem'
-  },
-  main: {
-    marginLeft: '280px',
-    flex: 1,
-    padding: '40px 60px',
-  },
-  header: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: '40px',
-    paddingBottom: '20px',
-    borderBottom: '1px solid #e2e8f0'
-  },
-  inputStack: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '24px',
-  },
-  inputGroup: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '8px',
-  },
-  label: {
-    fontSize: '0.7rem',
-    textTransform: 'uppercase',
-    letterSpacing: '0.1em',
-    color: '#64748b',
-    fontWeight: '700'
-  },
-  input: {
-    padding: '12px 16px',
-    borderRadius: '8px',
+  logoContainer: { display: 'flex', alignItems: 'center', gap: '15px', marginBottom: '60px' },
+  hexLogo: { fontSize: '2rem', color: theme.accent, textShadow: `0 0 10px ${theme.accent}` },
+  brandTitle: { margin: 0, fontSize: '1.5rem', fontWeight: 'bold', letterSpacing: '2px' },
+  navStack: { display: 'flex', flexDirection: 'column', gap: '25px' },
+  inputWrapper: { display: 'flex', flexDirection: 'column', gap: '8px' },
+  inputLabel: { fontSize: '0.7rem', color: theme.textMuted, letterSpacing: '1px' },
+  terminalInput: {
+    background: 'rgba(0,0,0,0.3)',
     border: '1px solid #334155',
-    backgroundColor: '#1e293b',
-    color: 'white',
-    fontSize: '0.9rem',
-    transition: 'all 0.2s',
+    padding: '12px',
+    color: theme.accent,
+    borderRadius: '4px',
     outline: 'none',
+    fontSize: '0.9rem'
   },
-  primaryBtn: {
-    padding: '14px',
-    backgroundColor: '#3b82f6',
-    color: 'white',
-    border: 'none',
-    borderRadius: '8px',
-    fontWeight: '700',
+  executeBtn: {
+    marginTop: '20px',
+    padding: '15px',
+    background: 'transparent',
+    border: `1px solid ${theme.accent}`,
+    color: theme.accent,
+    fontWeight: 'bold',
     cursor: 'pointer',
-    marginTop: '10px',
-    transition: 'transform 0.1s, background 0.2s',
+    letterSpacing: '2px',
+    transition: '0.3s',
+    boxShadow: `inset 0 0 0 0 ${theme.accent}`
   },
-  downloadBtn: {
-    padding: '12px 24px',
-    backgroundColor: '#ffffff',
-    color: '#0f172a',
-    border: '1px solid #e2e8f0',
+  deck: { flex: 1, padding: '60px', zIndex: 5, position: 'relative' },
+  deckHeader: { 
+    display: 'flex', justifyContent: 'space-between', alignItems: 'center', 
+    marginBottom: '50px', borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: '20px' 
+  },
+  glitchText: { margin: 0, fontSize: '2.5rem', letterSpacing: '4px' },
+  efficiencyCircle: {
+    width: '100px', height: '100px', borderRadius: '50%', border: `2px solid ${theme.accent}`,
+    display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+    fontSize: '1.5rem', fontWeight: 'bold', boxShadow: `0 0 20px ${theme.accent}44`
+  },
+  grid: { display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '30px' },
+  kpiCard: {
+    background: theme.surface,
+    padding: '30px',
     borderRadius: '8px',
-    fontWeight: '600',
-    cursor: 'pointer',
-    boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
+    position: 'relative',
+    overflow: 'hidden',
+    border: '1px solid rgba(255,255,255,0.05)'
   },
-  grid: {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))',
-    gap: '20px',
+  kpiLabel: { fontSize: '0.7rem', color: theme.textMuted, display: 'block', marginBottom: '10px' },
+  kpiValue: { fontSize: '2rem', fontWeight: 'bold' },
+  kpiGlow: { 
+    position: 'absolute', bottom: 0, left: 0, height: '2px', width: '100%', opacity: 0.3,
+    filter: 'blur(5px)' 
   },
-  card: {
-    backgroundColor: 'white',
-    padding: '24px',
-    borderRadius: '12px',
-    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)',
-    transition: 'transform 0.2s',
-  },
-  cardLabel: {
-    fontSize: '0.75rem',
-    color: '#64748b',
-    fontWeight: '600',
-    textTransform: 'uppercase'
-  },
-  cardValue: {
-    fontSize: '1.4rem',
-    fontWeight: '800',
-    color: '#1e293b',
-  },
-  emptyState: {
-    textAlign: 'center',
-    padding: '120px 20px',
-    backgroundColor: 'white',
-    borderRadius: '24px',
-    border: '2px dashed #e2e8f0'
-  },
-  loaderContainer: {
-    textAlign: 'center',
-    padding: '100px',
-  },
-  pulse: {
-    width: '40px',
-    height: '40px',
-    backgroundColor: '#3b82f6',
-    borderRadius: '50%',
-    margin: '0 auto 20px',
-    opacity: 0.6,
-    boxShadow: '0 0 0 0 rgba(59, 130, 246, 0.7)',
-    animation: 'pulse-anim 1.5s infinite linear'
+  meterContainer: { marginTop: '50px' },
+  meterLabel: { display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', marginBottom: '10px' },
+  meterTrack: { height: '8px', background: '#1e293b', borderRadius: '4px', overflow: 'hidden' },
+  meterFill: { height: '100%', background: `linear-gradient(90deg, ${theme.accent}, ${theme.success})`, transition: '1s ease-out' },
+  emptyState: { height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: theme.textMuted },
+  radar: {
+    width: '60px', height: '60px', border: `2px solid ${theme.accent}`, borderRadius: '50%',
+    marginBottom: '20px', animation: 'ping 2s cubic-bezier(0, 0, 0.2, 1) infinite'
   }
-};
-
-/* =======================
-   PDF GENERATION
-======================= */
-const downloadPDF = (result, agentId, fromDate, toDate) => {
-  const doc = new jsPDF();
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(22);
-  doc.text("Performance Analytics Report", 14, 25);
-  
-  doc.setFontSize(10);
-  doc.setFont("helvetica", "normal");
-  doc.setTextColor(100);
-  doc.text(`Agent ID: ${agentId}`, 14, 35);
-  doc.text(`Period: ${fromDate} to ${toDate}`, 14, 40);
-  doc.text(`Generated: ${new Date().toLocaleString()}`, 14, 45);
-
-  const tableData = [
-    ["Working Days", result.workingDays],
-    ["Total Working Hours", result.workingHours],
-    ["Total Call Time", result.callTime],
-    ["Total Break Time", result.breakTime],
-    ["Normal Orders", result.normal_order],
-    ["Scheduled Orders", result.schedule_order],
-    ["Assigned Orders", result.assign_orderr],
-    ["App Intent", result.app_intent],
-    ["Employee Cancels", result.employee_cancel],
-    ["Customer Cancels", result.customer_cancel]
-  ];
-
-  doc.autoTable({
-    startY: 55,
-    head: [['Key Metric', 'Performance Value']],
-    body: tableData,
-    theme: 'grid',
-    headStyles: { fillColor: [15, 23, 42], textColor: [255, 255, 255] },
-    alternateRowStyles: { fillColor: [248, 250, 252] }
-  });
-
-  doc.save(`Report_${agentId}.pdf`);
 };
 
 export default AnalysisPage;
