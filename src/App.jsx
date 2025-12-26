@@ -70,23 +70,11 @@ function App() {
     setAdminId(null);
   }
 
-  if (!session) {
+ if (!session) {
     return showSignup ? (
-      <>
-        <Signup />
-        <p style={{ textAlign: 'center' }}>
-          Already have account?{' '}
-          <button onClick={() => setShowSignup(false)}>Login</button>
-        </p>
-      </>
+      <Signup onShowLogin={() => setShowSignup(false)} />
     ) : (
-      <>
-        <Login onLogin={setSession} />
-        <p style={{ textAlign: 'center' }}>
-          New user?{' '}
-          <button onClick={() => setShowSignup(true)}>Signup</button>
-        </p>
-      </>
+      <Login onLogin={setSession} onShowSignup={() => setShowSignup(true)} />
     );
   }
 
@@ -138,6 +126,7 @@ function App() {
 }
 
 export default App;
+
 
 
 
