@@ -1,34 +1,131 @@
 import { useState } from 'react';
 import { supabase } from '../lib/supabase';
 
-function Signup() {
+// Define styles inside the file to prevent ReferenceErrors
+const authStyles = {
+  container: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: '100vh',
+    backgroundColor: '#f8fafc',
+    fontFamily: '"Inter", sans-serif',
+    padding: '20px'
+  },
+  card: {
+    backgroundColor: '#ffffff',
+    padding: '40px',
+    borderRadius: '24px',
+    boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
+    width: '100%',
+    maxWidth: '420px',
+    border: '1px solid #e2e8f0',
+  },
+  header: {
+    textAlign: 'center',
+    marginBottom: '32px',
+  },
+  logo: {
+    fontSize: '40px',
+    marginBottom: '16px',
+  },
+  title: {
+    margin: 0,
+    fontSize: '24px',
+    fontWeight: '800',
+    color: '#0f172a',
+  },
+  subtitle: {
+    margin: '8px 0 0',
+    fontSize: '14px',
+    color: '#64748b',
+  },
+  form: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '20px',
+  },
+  inputGroup: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '6px',
+  },
+  label: {
+    fontSize: '13px',
+    fontWeight: '600',
+    color: '#475569',
+    textAlign: 'left'
+  },
+  input: {
+    padding: '12px 16px',
+    borderRadius: '10px',
+    border: '1px solid #cbd5e1',
+    fontSize: '15px',
+    outline: 'none',
+    transition: 'border-color 0.2s',
+  },
+  button: {
+    backgroundColor: '#4338ca',
+    color: '#ffffff',
+    padding: '12px',
+    borderRadius: '10px',
+    border: 'none',
+    fontSize: '16px',
+    fontWeight: '600',
+    cursor: 'pointer',
+    marginTop: '10px',
+    transition: 'background-color 0.2s',
+  },
+  message: {
+    marginTop: '20px',
+    padding: '12px',
+    borderRadius: '8px',
+    fontSize: '13px',
+    textAlign: 'center',
+    fontWeight: '500',
+  },
+  footer: {
+    marginTop: '24px',
+    textAlign: 'center',
+    fontSize: '14px',
+    color: '#64748b',
+  },
+  link: {
+    color: '#4338ca',
+    fontWeight: '700',
+    cursor: 'pointer',
+    textDecoration: 'none',
+    marginLeft: '5px',
+    borderBottom: '2px solid transparent',
+    transition: 'all 0.2s'
+  }
+};
+
+function Signup({ onShowLogin }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [adminId, setAdminId] = useState('');
-  const [message, setMessage] = useState('');
+  const [message, setMessage] = useState({ text: '', type: '' });
   const [loading, setLoading] = useState(false);
-  const [isSuccess, setIsSuccess] = useState(false);
 
   async function handleSignup(e) {
     e.preventDefault();
     setLoading(true);
-    setMessage('');
+    setMessage({ text: '', type: '' });
 
-    // 1️⃣ Create auth user
     const { data, error } = await supabase.auth.signUp({
       email,
       password
     });
 
     if (error) {
-      setMessage(error.message);
+      setMessage({ text: error.message, type: 'error' });
       setLoading(false);
       return;
     }
 
     const user = data.user;
 
-    // 2️⃣ Insert admin_id into profiles table
     const { error: profileError } = await supabase
       .from('profiles')
       .insert([
@@ -39,151 +136,89 @@ function Signup() {
         }
       ]);
 
-    setLoading(false);
     if (profileError) {
-      setMessage(profileError.message);
+      setMessage({ text: profileError.message, type: 'error' });
     } else {
-      setIsSuccess(true);
-      setMessage('Signup successful! You can login now.');
+      setMessage({ text: 'Signup successful! You can login now.', type: 'success' });
     }
+    setLoading(false);
   }
 
   return (
-    <div style={styles.container}>
-      <div style={styles.card}>
-        <h2 style={styles.title}>Create Account</h2>
-        <p style={styles.subtitle}>Join our platform today</p>
+    <div style={authStyles.container}>
+      <div style={authStyles.card}>
+        <div style={authStyles.header}>
+          <div style={authStyles.logo}>🛡️</div>
+          <h2 style={authStyles.title}>Signup</h2>
+          <p style={authStyles.subtitle}>Create an account to manage your agents</p>
+        </div>
 
-        <form onSubmit={handleSignup} style={styles.form}>
-          <div style={styles.inputGroup}>
-            <label style={styles.label}>Email Address</label>
+        <form onSubmit={handleSignup} style={authStyles.form}>
+          <div style={authStyles.inputGroup}>
+            <label style={authStyles.label}>Email Address</label>
             <input
               type="email"
               placeholder="name@company.com"
+              style={authStyles.input}
               value={email}
               onChange={e => setEmail(e.target.value)}
-              style={styles.input}
               required
             />
           </div>
 
-          <div style={styles.inputGroup}>
-            <label style={styles.label}>Password</label>
+          <div style={authStyles.inputGroup}>
+            <label style={authStyles.label}>Password</label>
             <input
               type="password"
-              placeholder="Minimum 6 characters"
+              placeholder="••••••••"
+              style={authStyles.input}
               value={password}
               onChange={e => setPassword(e.target.value)}
-              style={styles.input}
               required
             />
           </div>
 
-          <div style={styles.inputGroup}>
-            <label style={styles.label}>Admin ID</label>
+          <div style={authStyles.inputGroup}>
+            <label style={authStyles.label}>Admin ID</label>
             <input
               type="number"
-              placeholder="Enter your numeric ID"
+              placeholder="Numeric Admin ID"
+              style={authStyles.input}
               value={adminId}
               onChange={e => setAdminId(e.target.value)}
-              style={styles.input}
               required
             />
           </div>
 
-          <button type="submit" disabled={loading} style={{
-            ...styles.button,
-            backgroundColor: loading ? '#ccc' : '#28a745'
-          }}>
-            {loading ? 'Processing...' : 'Signup'}
+          <button type="submit" style={authStyles.button} disabled={loading}>
+            {loading ? 'Creating Account...' : 'Signup'}
           </button>
         </form>
 
-        {message && (
-          <p style={{
-            ...styles.message,
-            color: isSuccess ? '#155724' : '#721c24',
-            backgroundColor: isSuccess ? '#d4edda' : '#f8d7da'
+        {message.text && (
+          <p style={{ 
+            ...authStyles.message, 
+            color: message.type === 'error' ? '#ef4444' : '#10b981',
+            backgroundColor: message.type === 'error' ? '#fef2f2' : '#f0fdf4'
           }}>
-            {message}
+            {message.text}
           </p>
         )}
+
+        <div style={authStyles.footer}>
+          Already have an account?{' '}
+          <span 
+            style={authStyles.link} 
+            onClick={onShowLogin}
+            onMouseOver={(e) => e.target.style.borderBottom = '2px solid #4338ca'}
+            onMouseOut={(e) => e.target.style.borderBottom = '2px solid transparent'}
+          >
+            Sign in
+          </span>
+        </div>
       </div>
     </div>
   );
 }
-
-const styles = {
-  container: {
-    display: 'flex',
-    justifyContent: 'center',
-    alignItems: 'center',
-    minHeight: '100vh',
-    backgroundColor: '#f4f7f6',
-    fontFamily: '"Inter", sans-serif',
-  },
-  card: {
-    backgroundColor: '#fff',
-    padding: '40px',
-    borderRadius: '12px',
-    boxShadow: '0 10px 25px rgba(0,0,0,0.05)',
-    width: '100%',
-    maxWidth: '400px',
-  },
-  title: {
-    margin: '0 0 10px 0',
-    fontSize: '24px',
-    fontWeight: '700',
-    color: '#1a1a1a',
-    textAlign: 'center',
-  },
-  subtitle: {
-    margin: '0 0 30px 0',
-    fontSize: '14px',
-    color: '#666',
-    textAlign: 'center',
-  },
-  form: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '20px',
-  },
-  inputGroup: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '8px',
-  },
-  label: {
-    fontSize: '12px',
-    fontWeight: '600',
-    color: '#444',
-    textTransform: 'uppercase',
-    letterSpacing: '0.5px',
-  },
-  input: {
-    padding: '12px 16px',
-    borderRadius: '8px',
-    border: '1px solid #ddd',
-    fontSize: '16px',
-    outline: 'none',
-  },
-  button: {
-    padding: '14px',
-    borderRadius: '8px',
-    border: 'none',
-    color: '#fff',
-    fontSize: '16px',
-    fontWeight: '600',
-    cursor: 'pointer',
-    marginTop: '10px',
-  },
-  message: {
-    fontSize: '14px',
-    textAlign: 'center',
-    marginTop: '20px',
-    padding: '10px',
-    borderRadius: '6px',
-  },
-};
 
 export default Signup;
