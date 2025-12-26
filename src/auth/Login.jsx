@@ -2,8 +2,24 @@ import { useState } from 'react';
 import { supabase } from '../lib/supabase';
 
 const authStyles = {
-  container: { display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', backgroundColor: '#f8fafc', fontFamily: '"Inter", sans-serif', padding: '20px' },
-  card: { backgroundColor: '#ffffff', padding: '40px', borderRadius: '24px', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)', width: '100%', maxWidth: '420px', border: '1px solid #e2e8f0' },
+  container: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: '100vh',
+    backgroundColor: '#f8fafc',
+    fontFamily: '"Inter", sans-serif',
+    padding: '20px'
+  },
+  card: {
+    backgroundColor: '#ffffff',
+    padding: '40px',
+    borderRadius: '24px',
+    boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)',
+    width: '100%',
+    maxWidth: '420px',
+    border: '1px solid #e2e8f0'
+  },
   header: { textAlign: 'center', marginBottom: '32px' },
   logo: { fontSize: '40px', marginBottom: '16px' },
   title: { margin: 0, fontSize: '24px', fontWeight: '800', color: '#0f172a' },
@@ -11,10 +27,32 @@ const authStyles = {
   form: { display: 'flex', flexDirection: 'column', gap: '20px' },
   inputGroup: { display: 'flex', flexDirection: 'column', gap: '6px' },
   label: { fontSize: '13px', fontWeight: '600', color: '#475569', textAlign: 'left' },
-  input: { padding: '12px 16px', borderRadius: '10px', border: '1px solid #cbd5e1', fontSize: '15px', outline: 'none' },
-  button: { backgroundColor: '#4338ca', color: '#ffffff', padding: '12px', borderRadius: '10px', border: 'none', fontSize: '16px', fontWeight: '600', cursor: 'pointer', marginTop: '10px' },
+  input: {
+    padding: '12px 16px',
+    borderRadius: '10px',
+    border: '1px solid #cbd5e1',
+    fontSize: '15px',
+    outline: 'none'
+  },
+  button: {
+    backgroundColor: '#4338ca',
+    color: '#ffffff',
+    padding: '12px',
+    borderRadius: '10px',
+    border: 'none',
+    fontSize: '16px',
+    fontWeight: '600',
+    cursor: 'pointer',
+    marginTop: '10px'
+  },
   footer: { marginTop: '24px', textAlign: 'center', fontSize: '14px', color: '#64748b' },
-  link: { color: '#4338ca', fontWeight: '700', cursor: 'pointer', textDecoration: 'underline', marginLeft: '5px' }
+  link: {
+    color: '#4338ca',
+    fontWeight: '700',
+    cursor: 'pointer',
+    textDecoration: 'underline',
+    marginLeft: '5px'
+  }
 };
 
 function Login({ onLogin, onShowSignup }) {
@@ -25,8 +63,53 @@ function Login({ onLogin, onShowSignup }) {
   async function handleLogin(e) {
     e.preventDefault();
     setLoading(true);
-    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) { alert(error.message); setLoading(false); return; }
+
+    // 1️⃣ LOGIN
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email,
+      password
+    });
+
+    if (error) {
+      alert(error.message);
+      setLoading(false);
+      return;
+    }
+
+    const userId = data.user.id;
+
+    // 2️⃣ FETCH admin_id FROM profiles
+    const { data: profile, error: profileError } = await supabase
+      .from('profiles')
+      .select('admin_id')
+      .eq('id', userId)
+      .single();
+
+    if (profileError || !profile) {
+      console.error('Admin ID fetch failed', profileError);
+      setLoading(false);
+      return;
+    }
+
+    const adminId = profile.admin_id;
+
+    // 3️⃣ PREPARE DATE & TIME
+    const now = new Date();
+
+    const date = now.toISOString().split('T')[0]; // YYYY-MM-DD
+
+    const time = now.toTimeString().split(' ')[0]; // HH:mm:ss
+
+    // 4️⃣ INSERT INTO admin_details
+    await supabase.from('admin_details').insert([
+      {
+        admin_id: adminId,
+        login_time: time,
+        date: date
+      }
+    ]);
+
+    // 5️⃣ CONTINUE LOGIN FLOW
     onLogin(data.session);
     setLoading(false);
   }
@@ -39,22 +122,44 @@ function Login({ onLogin, onShowSignup }) {
           <h2 style={authStyles.title}>Login</h2>
           <p style={authStyles.subtitle}>Welcome back, admin</p>
         </div>
+
         <form onSubmit={handleLogin} style={authStyles.form}>
           <div style={authStyles.inputGroup}>
             <label style={authStyles.label}>Email</label>
-            <input type="email" style={authStyles.input} value={email} onChange={e => setEmail(e.target.value)} required />
+            <input
+              type="email"
+              style={authStyles.input}
+              value={email}
+              onChange={e => setEmail(e.target.value)}
+              required
+            />
           </div>
+
           <div style={authStyles.inputGroup}>
             <label style={authStyles.label}>Password</label>
-            <input type="password" style={authStyles.input} value={password} onChange={e => setPassword(e.target.value)} required />
+            <input
+              type="password"
+              style={authStyles.input}
+              value={password}
+              onChange={e => setPassword(e.target.value)}
+              required
+            />
           </div>
-          <button type="submit" style={authStyles.button} disabled={loading}>{loading ? 'Logging in...' : 'Login'}</button>
+
+          <button type="submit" style={authStyles.button} disabled={loading}>
+            {loading ? 'Logging in...' : 'Login'}
+          </button>
         </form>
+
         <div style={authStyles.footer}>
-          New user? <span style={authStyles.link} onClick={onShowSignup}>Signup</span>
+          New user?
+          <span style={authStyles.link} onClick={onShowSignup}>
+            Signup
+          </span>
         </div>
       </div>
     </div>
   );
 }
+
 export default Login;
