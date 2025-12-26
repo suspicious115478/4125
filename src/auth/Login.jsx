@@ -1,25 +1,23 @@
 import { useState } from 'react';
 import { supabase } from '../lib/supabase';
 
-// Self-contained styles to prevent ReferenceErrors
-const winStyles = {
-  window: { height: '100vh', width: '100vw', display: 'flex', flexDirection: 'column', backgroundColor: '#ffffff', fontFamily: '"Inter", "Segoe UI", sans-serif', overflow: 'hidden' },
-  nav: { height: '80px', borderBottom: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 60px', backgroundColor: '#fff' },
-  brand: { fontSize: '22px', fontWeight: '900', color: '#1e293b', letterSpacing: '1px' },
-  navBtn: { padding: '10px 20px', borderRadius: '8px', border: '1px solid #4338ca', color: '#4338ca', backgroundColor: 'transparent', fontWeight: '600', cursor: 'pointer', transition: 'all 0.2s' },
-  main: { flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%)' },
-  authBox: { width: '100%', maxWidth: '500px', padding: '60px', backgroundColor: '#fff', borderRadius: '24px', boxShadow: '0 20px 50px rgba(0,0,0,0.05)', border: '1px solid #e2e8f0' },
-  title: { fontSize: '36px', fontWeight: '800', color: '#0f172a', margin: '0 0 12px 0', textAlign: 'center' },
-  subtitle: { fontSize: '16px', color: '#64748b', textAlign: 'center', marginBottom: '40px' },
-  form: { display: 'flex', flexDirection: 'column', gap: '24px' },
-  field: { display: 'flex', flexDirection: 'column', gap: '8px' },
-  label: { fontSize: '12px', fontWeight: '800', color: '#94a3b8', letterSpacing: '0.5px', textAlign: 'left' },
-  input: { padding: '14px 18px', borderRadius: '12px', border: '1px solid #cbd5e1', fontSize: '16px', outline: 'none', transition: 'all 0.2s', backgroundColor: '#fdfdfd' },
-  submitBtn: { padding: '16px', backgroundColor: '#4338ca', color: '#fff', border: 'none', borderRadius: '12px', fontSize: '14px', fontWeight: '700', cursor: 'pointer', marginTop: '10px', letterSpacing: '1px' },
-  footer: { padding: '20px', textAlign: 'center', fontSize: '12px', color: '#94a3b8', borderTop: '1px solid #f1f5f9' }
+const authStyles = {
+  container: { display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', backgroundColor: '#f8fafc', fontFamily: '"Inter", sans-serif', padding: '20px' },
+  card: { backgroundColor: '#ffffff', padding: '40px', borderRadius: '24px', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)', width: '100%', maxWidth: '420px', border: '1px solid #e2e8f0' },
+  header: { textAlign: 'center', marginBottom: '32px' },
+  logo: { fontSize: '40px', marginBottom: '16px' },
+  title: { margin: 0, fontSize: '24px', fontWeight: '800', color: '#0f172a' },
+  subtitle: { margin: '8px 0 0', fontSize: '14px', color: '#64748b' },
+  form: { display: 'flex', flexDirection: 'column', gap: '20px' },
+  inputGroup: { display: 'flex', flexDirection: 'column', gap: '6px' },
+  label: { fontSize: '13px', fontWeight: '600', color: '#475569', textAlign: 'left' },
+  input: { padding: '12px 16px', borderRadius: '10px', border: '1px solid #cbd5e1', fontSize: '15px', outline: 'none' },
+  button: { backgroundColor: '#4338ca', color: '#ffffff', padding: '12px', borderRadius: '10px', border: 'none', fontSize: '16px', fontWeight: '600', cursor: 'pointer', marginTop: '10px' },
+  footer: { marginTop: '24px', textAlign: 'center', fontSize: '14px', color: '#64748b' },
+  link: { color: '#4338ca', fontWeight: '700', cursor: 'pointer', textDecoration: 'underline', marginLeft: '5px' }
 };
 
-const Login = ({ onLogin, onShowSignup }) => {
+function Login({ onLogin, onShowSignup }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -28,41 +26,35 @@ const Login = ({ onLogin, onShowSignup }) => {
     e.preventDefault();
     setLoading(true);
     const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) alert(error.message);
-    else onLogin(data.session);
+    if (error) { alert(error.message); setLoading(false); return; }
+    onLogin(data.session);
     setLoading(false);
   }
 
   return (
-    <div style={winStyles.window}>
-      <nav style={winStyles.nav}>
-        <div style={winStyles.brand}>AGENT<span style={{color:'#4338ca'}}>PORTAL</span></div>
-        <button onClick={onShowSignup} style={winStyles.navBtn}>Create Admin Account</button>
-      </nav>
-
-      <main style={winStyles.main}>
-        <div style={winStyles.authBox}>
-          <h1 style={winStyles.title}>Sign in</h1>
-          <p style={winStyles.subtitle}>Enter your administrative credentials to continue.</p>
-
-          <form onSubmit={handleLogin} style={winStyles.form}>
-            <div style={winStyles.field}>
-              <label style={winStyles.label}>EMAIL ADDRESS</label>
-              <input type="email" style={winStyles.input} value={email} onChange={e => setEmail(e.target.value)} required placeholder="admin@system.com" />
-            </div>
-            <div style={winStyles.field}>
-              <label style={winStyles.label}>PASSWORD</label>
-              <input type="password" style={winStyles.input} value={password} onChange={e => setPassword(e.target.value)} required placeholder="••••••••" />
-            </div>
-            <button type="submit" style={winStyles.submitBtn} disabled={loading}>
-              {loading ? 'AUTHENTICATING...' : 'ACCESS DASHBOARD'}
-            </button>
-          </form>
+    <div style={authStyles.container}>
+      <div style={authStyles.card}>
+        <div style={authStyles.header}>
+          <div style={authStyles.logo}>🔑</div>
+          <h2 style={authStyles.title}>Login</h2>
+          <p style={authStyles.subtitle}>Welcome back, admin</p>
         </div>
-      </main>
-      <footer style={winStyles.footer}>© 2025 Enterprise Agent Management System | Secure Admin Access</footer>
+        <form onSubmit={handleLogin} style={authStyles.form}>
+          <div style={authStyles.inputGroup}>
+            <label style={authStyles.label}>Email</label>
+            <input type="email" style={authStyles.input} value={email} onChange={e => setEmail(e.target.value)} required />
+          </div>
+          <div style={authStyles.inputGroup}>
+            <label style={authStyles.label}>Password</label>
+            <input type="password" style={authStyles.input} value={password} onChange={e => setPassword(e.target.value)} required />
+          </div>
+          <button type="submit" style={authStyles.button} disabled={loading}>{loading ? 'Logging in...' : 'Login'}</button>
+        </form>
+        <div style={authStyles.footer}>
+          New user? <span style={authStyles.link} onClick={onShowSignup}>Signup</span>
+        </div>
+      </div>
     </div>
   );
-};
-
+}
 export default Login;
