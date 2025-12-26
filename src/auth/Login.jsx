@@ -16,45 +16,59 @@ const Login = ({ onLogin, onShowSignup }) => {
   }
 
   return (
-    <div style={styles.card}>
-      <div style={styles.brandBar} />
-      <div style={{ padding: '40px' }}>
-        <h2 style={styles.title}>Admin Login</h2>
-        <p style={styles.subtitle}>Enter your credentials to access the portal</p>
+    <div style={winStyles.window}>
+      {/* Desktop Top Nav */}
+      <nav style={winStyles.nav}>
+        <div style={winStyles.brand}>AGENT<span>PORTAL</span></div>
+        <button onClick={onShowSignup} style={winStyles.navBtn}>Create Account</button>
+      </nav>
 
-        <form onSubmit={handleLogin} style={styles.form}>
-          <div style={styles.inputGroup}>
-            <label style={styles.label}>Email Address</label>
-            <input type="email" style={styles.input} value={email} onChange={e => setEmail(e.target.value)} required placeholder="admin@company.com" />
-          </div>
-          <div style={styles.inputGroup}>
-            <label style={styles.label}>Password</label>
-            <input type="password" style={styles.input} value={password} onChange={e => setPassword(e.target.value)} required placeholder="••••••••" />
-          </div>
-          <button type="submit" style={styles.button} disabled={loading}>{loading ? 'Signing in...' : 'Sign In'}</button>
-        </form>
+      <main style={winStyles.main}>
+        <div style={winStyles.authBox}>
+          <h1 style={winStyles.title}>Sign in to Dashboard</h1>
+          <p style={winStyles.subtitle}>Enter your administrative credentials to continue.</p>
 
-        <div style={styles.footer}>
-          New user? <span style={styles.link} onClick={onShowSignup}>Create an account</span>
+          <form onSubmit={handleLogin} style={winStyles.form}>
+            <div style={winStyles.inputRow}>
+              <div style={winStyles.field}>
+                <label style={winStyles.label}>EMAIL ADDRESS</label>
+                <input type="email" style={winStyles.input} value={email} onChange={e => setEmail(e.target.value)} required placeholder="admin@system.com" />
+              </div>
+            </div>
+            <div style={winStyles.inputRow}>
+              <div style={winStyles.field}>
+                <label style={winStyles.label}>PASSWORD</label>
+                <input type="password" style={winStyles.input} value={password} onChange={e => setPassword(e.target.value)} required placeholder="••••••••" />
+              </div>
+            </div>
+            <button type="submit" style={winStyles.submitBtn} disabled={loading}>
+              {loading ? 'AUTHENTICATING...' : 'ACCESS DASHBOARD'}
+            </button>
+          </form>
         </div>
-      </div>
+      </main>
+      
+      <footer style={winStyles.footer}>© 2025 Enterprise Agent Management System | Secure Admin Access</footer>
     </div>
   );
 };
 
-// SHARED STYLES
-const styles = {
-  card: { backgroundColor: '#ffffff', borderRadius: '24px', boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.05)', width: '100%', maxWidth: '440px', overflow: 'hidden', border: '1px solid #e2e8f0', fontFamily: '"Inter", sans-serif' },
-  brandBar: { height: '6px', background: 'linear-gradient(90deg, #4338ca 0%, #6366f1 100%)' },
-  title: { fontSize: '28px', fontWeight: '800', color: '#0f172a', margin: 0 },
-  subtitle: { color: '#64748b', fontSize: '15px', marginTop: '8px', marginBottom: '32px' },
+// SHARED DESKTOP WINDOW STYLES
+const winStyles = {
+  window: { height: '100vh', width: '100vw', display: 'flex', flexDirection: 'column', backgroundColor: '#ffffff', fontFamily: '"Inter", "Segoe UI", sans-serif', overflow: 'hidden' },
+  nav: { height: '80px', borderBottom: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 60px', backgroundColor: '#fff' },
+  brand: { fontSize: '22px', fontWeight: '900', color: '#1e293b', letterSpacing: '1px' },
+  navBtn: { padding: '10px 20px', borderRadius: '8px', border: '1px solid #4338ca', color: '#4338ca', backgroundColor: 'transparent', fontWeight: '600', cursor: 'pointer' },
+  main: { flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%)' },
+  authBox: { width: '100%', maxWidth: '500px', padding: '60px', backgroundColor: '#fff', borderRadius: '24px', boxShadow: '0 20px 50px rgba(0,0,0,0.05)', border: '1px solid #e2e8f0' },
+  title: { fontSize: '36px', fontWeight: '800', color: '#0f172a', margin: '0 0 12px 0', textAlign: 'center' },
+  subtitle: { fontSize: '16px', color: '#64748b', textAlign: 'center', marginBottom: '40px' },
   form: { display: 'flex', flexDirection: 'column', gap: '24px' },
-  inputGroup: { display: 'flex', flexDirection: 'column', gap: '8px' },
-  label: { fontSize: '14px', fontWeight: '600', color: '#334155' },
-  input: { padding: '12px 16px', borderRadius: '12px', border: '1px solid #e2e8f0', fontSize: '15px', outline: 'none', backgroundColor: '#f8fafc', transition: 'all 0.2s' },
-  button: { backgroundColor: '#4338ca', color: '#fff', padding: '14px', borderRadius: '12px', border: 'none', fontSize: '16px', fontWeight: '700', cursor: 'pointer', transition: 'background 0.2s', marginTop: '8px' },
-  footer: { marginTop: '32px', textAlign: 'center', fontSize: '14px', color: '#64748b' },
-  link: { color: '#4338ca', fontWeight: '700', cursor: 'pointer', textDecoration: 'underline', marginLeft: '4px' }
+  field: { display: 'flex', flexDirection: 'column', gap: '8px' },
+  label: { fontSize: '12px', fontWeight: '800', color: '#94a3b8', letterSpacing: '0.5px' },
+  input: { padding: '14px 18px', borderRadius: '12px', border: '1px solid #cbd5e1', fontSize: '16px', outline: 'none', transition: 'all 0.2s', backgroundColor: '#fdfdfd' },
+  submitBtn: { padding: '16px', backgroundColor: '#4338ca', color: '#fff', border: 'none', borderRadius: '12px', fontSize: '14px', fontWeight: '700', cursor: 'pointer', marginTop: '10px', letterSpacing: '1px' },
+  footer: { padding: '20px', textAlign: 'center', fontSize: '12px', color: '#94a3b8', borderTop: '1px solid #f1f5f9' }
 };
 
 export default Login;
