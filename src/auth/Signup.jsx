@@ -5,81 +5,93 @@ function Signup() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [adminId, setAdminId] = useState('');
-  const [message, setMessage] = useState('');
+  const [message, setMessage] = useState({ text: '', type: '' });
+  const [loading, setLoading] = useState(false);
 
   async function handleSignup(e) {
     e.preventDefault();
-
-    // 1️⃣ Create auth user
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password
-    });
+    setLoading(true);
+    const { data, error } = await supabase.auth.signUp({ email, password });
 
     if (error) {
-      setMessage(error.message);
+      setMessage({ text: error.message, type: 'error' });
+      setLoading(false);
       return;
     }
 
-    const user = data.user;
-
-    // 2️⃣ Insert admin_id into profiles table
     const { error: profileError } = await supabase
       .from('profiles')
-      .insert([
-        {
-          id: user.id,
-          email: email,
-          admin_id: Number(adminId)
-        }
-      ]);
+      .insert([{ id: data.user.id, email, admin_id: Number(adminId) }]);
 
     if (profileError) {
-      setMessage(profileError.message);
+      setMessage({ text: profileError.message, type: 'error' });
     } else {
-      setMessage('Signup successful! You can login now.');
+      setMessage({ text: 'Signup successful! You can login now.', type: 'success' });
     }
+    setLoading(false);
   }
 
   return (
-    <div style={{ maxWidth: 400, margin: '100px auto' }}>
-      <h2>Signup</h2>
+    <div style={authStyles.container}>
+      <div style={authStyles.card}>
+        <div style={authStyles.header}>
+          <div style={authStyles.logo}>🛡️</div>
+          <h2 style={authStyles.title}>Create Admin Account</h2>
+          <p style={authStyles.subtitle}>Enter your details to register</p>
+        </div>
 
-      <form onSubmit={handleSignup}>
-        <input
-          type="email"
-          placeholder="Email"
-          value={email}
-          onChange={e => setEmail(e.target.value)}
-          required
-        />
+        <form onSubmit={handleSignup} style={authStyles.form}>
+          <div style={authStyles.inputGroup}>
+            <label style={authStyles.label}>Email Address</label>
+            <input
+              type="email"
+              placeholder="name@company.com"
+              style={authStyles.input}
+              value={email}
+              onChange={e => setEmail(e.target.value)}
+              required
+            />
+          </div>
 
-        <br /><br />
+          <div style={authStyles.inputGroup}>
+            <label style={authStyles.label}>Password</label>
+            <input
+              type="password"
+              placeholder="••••••••"
+              style={authStyles.input}
+              value={password}
+              onChange={e => setPassword(e.target.value)}
+              required
+            />
+          </div>
 
-        <input
-          type="password"
-          placeholder="Password"
-          value={password}
-          onChange={e => setPassword(e.target.value)}
-          required
-        />
+          <div style={authStyles.inputGroup}>
+            <label style={authStyles.label}>Admin ID</label>
+            <input
+              type="number"
+              placeholder="Numeric ID"
+              style={authStyles.input}
+              value={adminId}
+              onChange={e => setAdminId(e.target.value)}
+              required
+            />
+          </div>
 
-        <br /><br />
+          <button type="submit" style={authStyles.button} disabled={loading}>
+            {loading ? 'Creating Account...' : 'Sign Up'}
+          </button>
+        </form>
 
-        <input
-          type="number"
-          placeholder="Admin ID"
-          value={adminId}
-          onChange={e => setAdminId(e.target.value)}
-          required
-        />
-
-        <br /><br />
-
-        <button type="submit">Signup</button>
-      </form>
-
-      <p>{message}</p>
+        {message.text && (
+          <p style={{ 
+            ...authStyles.message, 
+            color: message.type === 'error' ? '#ef4444' : '#10b981',
+            backgroundColor: message.type === 'error' ? '#fef2f2' : '#f0fdf4'
+          }}>
+            {message.text}
+          </p>
+        )}
+      </div>
     </div>
   );
 }
