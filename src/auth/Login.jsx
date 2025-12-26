@@ -1,23 +1,7 @@
 import { useState } from 'react';
 import { supabase } from '../lib/supabase';
 
-const authStyles = {
-  container: { display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', backgroundColor: '#f8fafc', fontFamily: '"Inter", sans-serif', padding: '20px' },
-  card: { backgroundColor: '#ffffff', padding: '40px', borderRadius: '24px', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)', width: '100%', maxWidth: '420px', border: '1px solid #e2e8f0' },
-  header: { textAlign: 'center', marginBottom: '32px' },
-  logo: { fontSize: '40px', marginBottom: '16px' },
-  title: { margin: 0, fontSize: '24px', fontWeight: '800', color: '#0f172a' },
-  subtitle: { margin: '8px 0 0', fontSize: '14px', color: '#64748b' },
-  form: { display: 'flex', flexDirection: 'column', gap: '20px' },
-  inputGroup: { display: 'flex', flexDirection: 'column', gap: '6px' },
-  label: { fontSize: '13px', fontWeight: '600', color: '#475569', textAlign: 'left' },
-  input: { padding: '12px 16px', borderRadius: '10px', border: '1px solid #cbd5e1', fontSize: '15px', outline: 'none' },
-  button: { backgroundColor: '#4338ca', color: '#ffffff', padding: '12px', borderRadius: '10px', border: 'none', fontSize: '16px', fontWeight: '600', cursor: 'pointer', marginTop: '10px' },
-  footer: { marginTop: '24px', textAlign: 'center', fontSize: '14px', color: '#64748b' },
-  link: { color: '#4338ca', fontWeight: '700', cursor: 'pointer', textDecoration: 'underline', marginLeft: '5px' }
-};
-
-function Login({ onLogin, onShowSignup }) {
+const Login = ({ onLogin, onShowSignup }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -26,35 +10,71 @@ function Login({ onLogin, onShowSignup }) {
     e.preventDefault();
     setLoading(true);
     const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) { alert(error.message); setLoading(false); return; }
-    onLogin(data.session);
+    if (error) alert(error.message);
+    else onLogin(data.session);
     setLoading(false);
   }
 
   return (
-    <div style={authStyles.container}>
-      <div style={authStyles.card}>
-        <div style={authStyles.header}>
-          <div style={authStyles.logo}>🔑</div>
-          <h2 style={authStyles.title}>Login</h2>
-          <p style={authStyles.subtitle}>Welcome back, admin</p>
+    <div style={s.container}>
+      {/* LEFT SIDE: BRANDING */}
+      <div style={s.brandSide}>
+        <div style={s.brandContent}>
+          <div style={s.badge}>Enterprise Edition</div>
+          <h1 style={s.brandTitle}>Real-time Agent Monitoring <br/>at Scale.</h1>
+          <p style={s.brandPara}>Manage performance, track attendance, and generate insightful analytics from a single source of truth.</p>
         </div>
-        <form onSubmit={handleLogin} style={authStyles.form}>
-          <div style={authStyles.inputGroup}>
-            <label style={authStyles.label}>Email</label>
-            <input type="email" style={authStyles.input} value={email} onChange={e => setEmail(e.target.value)} required />
+      </div>
+
+      {/* RIGHT SIDE: FORM */}
+      <div style={s.formSide}>
+        <div style={s.formWrapper}>
+          <div style={s.header}>
+            <h2 style={s.title}>Welcome back</h2>
+            <p style={s.subtitle}>Please enter your details to sign in.</p>
           </div>
-          <div style={authStyles.inputGroup}>
-            <label style={authStyles.label}>Password</label>
-            <input type="password" style={authStyles.input} value={password} onChange={e => setPassword(e.target.value)} required />
+
+          <form onSubmit={handleLogin} style={s.form}>
+            <div style={s.inputGroup}>
+              <label style={s.label}>Email Address</label>
+              <input type="email" style={s.input} value={email} onChange={e => setEmail(e.target.value)} required placeholder="admin@company.com" />
+            </div>
+            <div style={s.inputGroup}>
+              <label style={s.label}>Password</label>
+              <input type="password" style={s.input} value={password} onChange={e => setPassword(e.target.value)} required placeholder="••••••••" />
+            </div>
+            <button type="submit" style={s.button} disabled={loading}>{loading ? 'Verifying...' : 'Sign In'}</button>
+          </form>
+
+          <div style={s.footer}>
+            New to the platform? <span style={s.link} onClick={onShowSignup}>Create an account</span>
           </div>
-          <button type="submit" style={authStyles.button} disabled={loading}>{loading ? 'Logging in...' : 'Login'}</button>
-        </form>
-        <div style={authStyles.footer}>
-          New user? <span style={authStyles.link} onClick={onShowSignup}>Signup</span>
         </div>
       </div>
     </div>
   );
-}
+};
+
 export default Login;
+
+// Styles shared by both files
+const s = {
+  container: { display: 'flex', minHeight: '100vh', fontFamily: '"Inter", sans-serif' },
+  brandSide: { flex: '1.2', background: 'linear-gradient(135deg, #4338ca 0%, #1e1b4b 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '60px', color: '#fff' },
+  brandContent: { maxWidth: '500px' },
+  badge: { backgroundColor: 'rgba(255,255,255,0.1)', display: 'inline-block', padding: '6px 12px', borderRadius: '20px', fontSize: '12px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '24px' },
+  brandTitle: { fontSize: '48px', fontWeight: '800', marginBottom: '20px', lineHeight: '1.1' },
+  brandPara: { fontSize: '18px', opacity: '0.8', lineHeight: '1.6' },
+  formSide: { flex: '1', backgroundColor: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '40px' },
+  formWrapper: { width: '100%', maxWidth: '400px' },
+  header: { marginBottom: '32px' },
+  title: { fontSize: '32px', fontWeight: '800', color: '#0f172a', margin: 0 },
+  subtitle: { color: '#64748b', marginTop: '8px' },
+  form: { display: 'flex', flexDirection: 'column', gap: '24px' },
+  inputGroup: { display: 'flex', flexDirection: 'column', gap: '8px' },
+  label: { fontSize: '14px', fontWeight: '600', color: '#334155' },
+  input: { padding: '12px 16px', borderRadius: '12px', border: '1px solid #e2e8f0', fontSize: '16px', outline: 'none', transition: 'all 0.2s' },
+  button: { backgroundColor: '#4338ca', color: '#fff', padding: '14px', borderRadius: '12px', border: 'none', fontSize: '16px', fontWeight: '700', cursor: 'pointer', transition: 'background 0.2s' },
+  footer: { marginTop: '32px', textAlign: 'center', fontSize: '14px', color: '#64748b' },
+  link: { color: '#4338ca', fontWeight: '700', cursor: 'pointer', textDecoration: 'none', marginLeft: '4px' }
+};
