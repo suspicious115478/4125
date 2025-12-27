@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react';
+import { supabase } from '../lib/supabase';
 
 function TopBar({ adminId, onLogout }) {
   const [time, setTime] = useState(new Date());
+  const [loggingOut, setLoggingOut] = useState(false);
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -9,6 +11,37 @@ function TopBar({ adminId, onLogout }) {
     }, 1000);
     return () => clearInterval(timer);
   }, []);
+
+  async function handleLogoutClick() {
+    if (loggingOut) return;
+    setLoggingOut(true);
+
+    try {
+      const now = new Date();
+
+      const today = now.toISOString().split('T')[0]; // YYYY-MM-DD
+      const logoutTime = now.toTimeString().split(' ')[0]; // HH:mm:ss
+
+      // 1️⃣ Update logout_time for today's latest login
+      await supabase
+        .from('admin_details')
+        .update({ logout_time: logoutTime })
+        .eq('admin_id', adminId)
+        .eq('date', today)
+        .is('logout_time', null);
+
+      // 2️⃣ Logout user
+      await supabase.auth.signOut();
+
+      // 3️⃣ Continue app flow
+      onLogout();
+    } catch (err) {
+      console.error('Logout update failed:', err);
+      onLogout(); // still logout to avoid locking user
+    } finally {
+      setLoggingOut(false);
+    }
+  }
 
   return (
     <div
@@ -24,7 +57,7 @@ function TopBar({ adminId, onLogout }) {
         boxShadow: '0 1px 0 rgba(255,255,255,0.04)'
       }}
     >
-      {/* LEFT: Context */}
+      {/* LEFT */}
       <div style={{ display: 'flex', flexDirection: 'column' }}>
         <span
           style={{
@@ -47,7 +80,7 @@ function TopBar({ adminId, onLogout }) {
         </span>
       </div>
 
-      {/* CENTER: Time */}
+      {/* CENTER TIME */}
       <div
         style={{
           fontSize: '14px',
@@ -63,9 +96,8 @@ function TopBar({ adminId, onLogout }) {
         {time.toLocaleTimeString()}
       </div>
 
-      {/* RIGHT: Actions */}
+      {/* RIGHT */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-        {/* Admin badge */}
         <div
           style={{
             padding: '6px 14px',
@@ -80,9 +112,9 @@ function TopBar({ adminId, onLogout }) {
           ADMIN
         </div>
 
-        {/* Logout button */}
         <button
-          onClick={onLogout}
+          onClick={handleLogoutClick}
+          disabled={loggingOut}
           style={{
             background: '#1e293b',
             border: '1px solid #334155',
@@ -91,19 +123,22 @@ function TopBar({ adminId, onLogout }) {
             borderRadius: '10px',
             fontSize: '13px',
             fontWeight: 500,
-            cursor: 'pointer',
+            cursor: loggingOut ? 'not-allowed' : 'pointer',
+            opacity: loggingOut ? 0.6 : 1,
             transition: 'all 0.2s ease'
           }}
           onMouseOver={(e) => {
-            e.target.style.background = '#334155';
-            e.target.style.borderColor = '#38bdf8';
+            if (!loggingOut) {
+              e.target.style.background = '#334155';
+              e.target.style.borderColor = '#38bdf8';
+            }
           }}
           onMouseOut={(e) => {
             e.target.style.background = '#1e293b';
             e.target.style.borderColor = '#334155';
           }}
         >
-          Logout
+          {loggingOut ? 'Logging out…' : 'Logout'}
         </button>
       </div>
     </div>
