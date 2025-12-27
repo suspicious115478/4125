@@ -4,6 +4,8 @@ import { supabase } from '../lib/supabase';
 function TopBar({ adminId, onLogout }) {
   const [time, setTime] = useState(new Date());
   const [loggingOut, setLoggingOut] = useState(false);
+  const [statusLoading, setStatusLoading] = useState(false);
+  const [currentState, setCurrentState] = useState(null); // 'active' | 'inactive'
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -12,48 +14,104 @@ function TopBar({ adminId, onLogout }) {
     return () => clearInterval(timer);
   }, []);
 
- async function handleLogoutClick() {
-  try {
-    const now = new Date();
-    const logoutTime = now.toTimeString().split(' ')[0]; // HH:mm:ss
+  // 🔁 Fetch current state on load
+  useEffect(() => {
+    if (adminId) fetchCurrentState();
+  }, [adminId]);
 
-    // 1️⃣ Get the latest open session
-    const { data: row, error: fetchError } = await supabase
+  async function fetchCurrentState() {
+    const today = new Date().toISOString().split('T')[0];
+
+    const { data } = await supabase
       .from('admin_details')
-      .select('id')
+      .select('state')
       .eq('admin_id', adminId)
-      .is('logout_time', null)
+      .eq('date', today)
       .order('created_at', { ascending: false })
       .limit(1)
       .maybeSingle();
 
-    if (fetchError) {
-      console.error('Fetch active session failed:', fetchError);
+    if (data?.state) {
+      setCurrentState(data.state);
     }
+  }
 
-    if (!row) {
-      console.warn('No active session found to logout');
-    } else {
-      // 2️⃣ Update EXACT row by id
-      const { error: updateError } = await supabase
+  // ✅ UPDATE ACTIVE / INACTIVE
+  async function updateState(newState) {
+    if (statusLoading) return;
+    setStatusLoading(true);
+
+    try {
+      const today = new Date().toISOString().split('T')[0];
+
+      // 1️⃣ Get latest row
+      const { data: row } = await supabase
         .from('admin_details')
-        .update({ logout_time: logoutTime })
+        .select('id')
+        .eq('admin_id', adminId)
+        .eq('date', today)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (!row) {
+        console.warn('No row found to update state');
+        return;
+      }
+
+      // 2️⃣ Update state
+      const { error } = await supabase
+        .from('admin_details')
+        .update({ state: newState })
         .eq('id', row.id);
 
-      if (updateError) {
-        console.error('Logout update failed:', updateError);
+      if (!error) {
+        setCurrentState(newState);
+      } else {
+        console.error('State update failed:', error);
       }
+    } finally {
+      setStatusLoading(false);
     }
-
-    // 3️⃣ Logout user
-    await supabase.auth.signOut();
-    onLogout();
-  } catch (err) {
-    console.error('Unexpected logout error:', err);
-    onLogout();
   }
-}
 
+  // 🚪 LOGOUT
+  async function handleLogoutClick() {
+    if (loggingOut) return;
+    setLoggingOut(true);
+
+    try {
+      const now = new Date();
+      const logoutTime = now.toTimeString().split(' ')[0];
+
+      const { data: row } = await supabase
+        .from('admin_details')
+        .select('id')
+        .eq('admin_id', adminId)
+        .is('logout_time', null)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (row) {
+        await supabase
+          .from('admin_details')
+          .update({
+            logout_time: logoutTime,
+            state: 'inactive'
+          })
+          .eq('id', row.id);
+      }
+
+      await supabase.auth.signOut();
+      onLogout();
+    } catch (err) {
+      console.error('Logout failed:', err);
+      onLogout();
+    } finally {
+      setLoggingOut(false);
+    }
+  }
 
   return (
     <div
@@ -65,40 +123,24 @@ function TopBar({ adminId, onLogout }) {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
-        padding: '0 28px',
-        boxShadow: '0 1px 0 rgba(255,255,255,0.04)'
+        padding: '0 28px'
       }}
     >
       {/* LEFT */}
       <div style={{ display: 'flex', flexDirection: 'column' }}>
-        <span
-          style={{
-            fontSize: '11px',
-            color: '#94a3b8',
-            letterSpacing: '0.1em',
-            textTransform: 'uppercase'
-          }}
-        >
+        <span style={{ fontSize: '11px', color: '#94a3b8', letterSpacing: '0.1em' }}>
           Dashboard
         </span>
-        <span
-          style={{
-            fontSize: '15px',
-            fontWeight: 600,
-            color: '#e5e7eb'
-          }}
-        >
+        <span style={{ fontSize: '15px', fontWeight: 600, color: '#e5e7eb' }}>
           Admin ID: {adminId}
         </span>
       </div>
 
-      {/* CENTER TIME */}
+      {/* CENTER */}
       <div
         style={{
           fontSize: '14px',
           color: '#cbd5f5',
-          fontWeight: 500,
-          fontVariantNumeric: 'tabular-nums',
           padding: '6px 14px',
           borderRadius: '999px',
           background: 'rgba(255,255,255,0.04)',
@@ -109,21 +151,24 @@ function TopBar({ adminId, onLogout }) {
       </div>
 
       {/* RIGHT */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-        <div
-          style={{
-            padding: '6px 14px',
-            borderRadius: '999px',
-            background: 'rgba(56,189,248,0.12)',
-            color: '#38bdf8',
-            fontSize: '12px',
-            fontWeight: 600,
-            letterSpacing: '0.05em'
-          }}
-        >
-          ADMIN
+      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+        {/* ACTIVE / INACTIVE TOGGLE */}
+        <div style={{ display: 'flex', gap: '6px' }}>
+          <StatusButton
+            label="Active"
+            active={currentState === 'active'}
+            color="#22c55e"
+            onClick={() => updateState('active')}
+          />
+          <StatusButton
+            label="Inactive"
+            active={currentState === 'inactive'}
+            color="#ef4444"
+            onClick={() => updateState('inactive')}
+          />
         </div>
 
+        {/* LOGOUT */}
         <button
           onClick={handleLogoutClick}
           disabled={loggingOut}
@@ -133,21 +178,8 @@ function TopBar({ adminId, onLogout }) {
             color: '#e5e7eb',
             padding: '8px 18px',
             borderRadius: '10px',
-            fontSize: '13px',
-            fontWeight: 500,
-            cursor: loggingOut ? 'not-allowed' : 'pointer',
-            opacity: loggingOut ? 0.6 : 1,
-            transition: 'all 0.2s ease'
-          }}
-          onMouseOver={(e) => {
-            if (!loggingOut) {
-              e.target.style.background = '#334155';
-              e.target.style.borderColor = '#38bdf8';
-            }
-          }}
-          onMouseOut={(e) => {
-            e.target.style.background = '#1e293b';
-            e.target.style.borderColor = '#334155';
+            cursor: 'pointer',
+            opacity: loggingOut ? 0.6 : 1
           }}
         >
           {loggingOut ? 'Logging out…' : 'Logout'}
@@ -157,6 +189,28 @@ function TopBar({ adminId, onLogout }) {
   );
 }
 
+/* =====================
+   STATUS BUTTON
+===================== */
+
+function StatusButton({ label, active, color, onClick }) {
+  return (
+    <button
+      onClick={onClick}
+      style={{
+        padding: '6px 14px',
+        borderRadius: '999px',
+        fontSize: '12px',
+        fontWeight: 600,
+        border: active ? `1px solid ${color}` : '1px solid #334155',
+        background: active ? `${color}22` : 'transparent',
+        color: active ? color : '#94a3b8',
+        cursor: 'pointer'
+      }}
+    >
+      {label}
+    </button>
+  );
+}
+
 export default TopBar;
-
-
