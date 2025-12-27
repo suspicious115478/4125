@@ -13,35 +13,44 @@ function TopBar({ adminId, onLogout }) {
   }, []);
 
   async function handleLogoutClick() {
-    if (loggingOut) return;
-    setLoggingOut(true);
+  if (loggingOut) return;
+  setLoggingOut(true);
 
-    try {
-      const now = new Date();
+  try {
+    const now = new Date();
+    const logoutTime = now.toTimeString().split(' ')[0]; // HH:mm:ss
 
-      const today = now.toISOString().split('T')[0]; // YYYY-MM-DD
-      const logoutTime = now.toTimeString().split(' ')[0]; // HH:mm:ss
+    // 1️⃣ Fetch latest login row for this admin
+    const { data: latestRow, error } = await supabase
+      .from('admin_details')
+      .select('id')
+      .eq('admin_id', adminId)
+      .is('logout_time', null)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .single();
 
-      // 1️⃣ Update logout_time for today's latest login
+    if (error || !latestRow) {
+      console.warn('No active login row found');
+    } else {
+      // 2️⃣ Update ONLY that row
       await supabase
         .from('admin_details')
         .update({ logout_time: logoutTime })
-        .eq('admin_id', adminId)
-        .eq('date', today)
-        .is('logout_time', null);
-
-      // 2️⃣ Logout user
-      await supabase.auth.signOut();
-
-      // 3️⃣ Continue app flow
-      onLogout();
-    } catch (err) {
-      console.error('Logout update failed:', err);
-      onLogout(); // still logout to avoid locking user
-    } finally {
-      setLoggingOut(false);
+        .eq('id', latestRow.id);
     }
+
+    // 3️⃣ Logout
+    await supabase.auth.signOut();
+    onLogout();
+  } catch (err) {
+    console.error('Logout failed:', err);
+    onLogout();
+  } finally {
+    setLoggingOut(false);
   }
+}
+
 
   return (
     <div
@@ -146,3 +155,4 @@ function TopBar({ adminId, onLogout }) {
 }
 
 export default TopBar;
+
