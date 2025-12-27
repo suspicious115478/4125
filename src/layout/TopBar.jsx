@@ -76,42 +76,54 @@ function TopBar({ adminId, onLogout }) {
   }
 
   // 🚪 LOGOUT
-  async function handleLogoutClick() {
-    if (loggingOut) return;
-    setLoggingOut(true);
+ async function handleLogoutClick() {
+  if (loggingOut) return;
+  setLoggingOut(true);
 
-    try {
-      const now = new Date();
-      const logoutTime = now.toTimeString().split(' ')[0];
+  try {
+    const now = new Date();
+    const logoutTime = now.toTimeString().split(' ')[0]; // HH:mm:ss
 
-      const { data: row } = await supabase
-        .from('admin_details')
-        .select('id')
-        .eq('admin_id', adminId)
-        .is('logout_time', null)
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .maybeSingle();
+    // 1️⃣ Fetch latest active session
+    const { data: row, error } = await supabase
+      .from('admin_details')
+      .select('id')
+      .eq('admin_id', adminId)
+      .is('logout_time', null)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
 
-      if (row) {
-        await supabase
-          .from('admin_details')
-          .update({
-            logout_time: logoutTime,
-            state: 'inactive'
-          })
-          .eq('id', row.id);
-      }
-
-      await supabase.auth.signOut();
-      onLogout();
-    } catch (err) {
-      console.error('Logout failed:', err);
-      onLogout();
-    } finally {
-      setLoggingOut(false);
+    if (error) {
+      console.error('Fetch session failed:', error);
     }
+
+    if (row) {
+      // 2️⃣ Force inactive on logout
+      const { error: updateError } = await supabase
+        .from('admin_details')
+        .update({
+          logout_time: logoutTime,
+          state: 'inactive'   // ✅ ALWAYS SET
+        })
+        .eq('id', row.id);
+
+      if (updateError) {
+        console.error('Logout update failed:', updateError);
+      }
+    }
+
+    // 3️⃣ Logout user
+    await supabase.auth.signOut();
+    onLogout();
+  } catch (err) {
+    console.error('Unexpected logout error:', err);
+    onLogout();
+  } finally {
+    setLoggingOut(false);
   }
+}
+
 
   return (
     <div
@@ -214,3 +226,4 @@ function StatusButton({ label, active, color, onClick }) {
 }
 
 export default TopBar;
+
