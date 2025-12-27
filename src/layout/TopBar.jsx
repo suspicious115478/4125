@@ -12,42 +12,45 @@ function TopBar({ adminId, onLogout }) {
     return () => clearInterval(timer);
   }, []);
 
-  async function handleLogoutClick() {
-  if (loggingOut) return;
-  setLoggingOut(true);
-
+ async function handleLogoutClick() {
   try {
     const now = new Date();
     const logoutTime = now.toTimeString().split(' ')[0]; // HH:mm:ss
 
-    // 1️⃣ Fetch latest login row for this admin
-    const { data: latestRow, error } = await supabase
+    // 1️⃣ Get the latest open session
+    const { data: row, error: fetchError } = await supabase
       .from('admin_details')
       .select('id')
       .eq('admin_id', adminId)
       .is('logout_time', null)
       .order('created_at', { ascending: false })
       .limit(1)
-      .single();
+      .maybeSingle();
 
-    if (error || !latestRow) {
-      console.warn('No active login row found');
-    } else {
-      // 2️⃣ Update ONLY that row
-      await supabase
-        .from('admin_details')
-        .update({ logout_time: logoutTime })
-        .eq('id', latestRow.id);
+    if (fetchError) {
+      console.error('Fetch active session failed:', fetchError);
     }
 
-    // 3️⃣ Logout
+    if (!row) {
+      console.warn('No active session found to logout');
+    } else {
+      // 2️⃣ Update EXACT row by id
+      const { error: updateError } = await supabase
+        .from('admin_details')
+        .update({ logout_time: logoutTime })
+        .eq('id', row.id);
+
+      if (updateError) {
+        console.error('Logout update failed:', updateError);
+      }
+    }
+
+    // 3️⃣ Logout user
     await supabase.auth.signOut();
     onLogout();
   } catch (err) {
-    console.error('Logout failed:', err);
+    console.error('Unexpected logout error:', err);
     onLogout();
-  } finally {
-    setLoggingOut(false);
   }
 }
 
@@ -155,4 +158,5 @@ function TopBar({ adminId, onLogout }) {
 }
 
 export default TopBar;
+
 
